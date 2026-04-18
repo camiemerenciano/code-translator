@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tradutor de Código</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <span class="header-icon">🔤</span>
+      <div>
+        <h1>Tradutor de Código</h1>
+        <p class="header-sub">cada parte do código ganha uma cor com sua tradução correspondente</p>
+      </div>
+    </div>
+    <span class="badge">powered by ChatGPT</span>
+  </header>
+
+  <div class="api-bar">
+    <label for="apiKey">OpenAI API Key:</label>
+    <input type="password" id="apiKey" placeholder="sk-..." />
+    <button id="btnSalvarKey">Salvar</button>
+    <a href="https://platform.openai.com/api-keys" target="_blank" class="link-hint">
+      Obtenha em platform.openai.com →
+    </a>
+  </div>
+
+  <main>
+    <!-- Painel esquerdo -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Código</span>
+        <div class="lang-select">
+          <label for="linguagem">Linguagem:</label>
+          <select id="linguagem">
+            <option>SQL</option>
+            <option>Python</option>
+            <option>JavaScript</option>
+            <option>TypeScript</option>
+            <option>Java</option>
+            <option>C#</option>
+            <option>C / C++</option>
+            <option>PHP</option>
+            <option>Ruby</option>
+            <option>Go</option>
+            <option>Shell / Bash</option>
+            <option>HTML / CSS</option>
+            <option>Kotlin</option>
+            <option>Swift</option>
+            <option>Rust</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Textarea de input (sempre visível) -->
+      <textarea id="inputCodigo" spellcheck="false" placeholder="Cole seu código aqui...&#10;&#10;Ctrl+Enter para traduzir"></textarea>
+
+      <!-- Versão colorida do código (aparece após traduzir) -->
+      <div id="codeColored" class="code-colored hidden">
+        <div class="code-colored-header">
+          <span>Código destacado</span>
+          <button id="btnEditar" class="btn-ghost-sm">✏ Editar</button>
+        </div>
+        <div id="codeColoredContent" class="code-colored-content"></div>
+      </div>
+    </div>
+
+    <!-- Painel direito -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title output-title">Tradução em Português</span>
+        <button id="btnCopiar" class="btn-secondary">Copiar</button>
+      </div>
+      <div id="outputTraducao" class="output-box"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-left">
+      <button id="btnTraduzir" class="btn-primary">▶ Traduzir</button>
+      <button id="btnLimpar" class="btn-secondary">Limpar</button>
+      <button id="btnExemplo" class="btn-ghost">Ver exemplo (SQL)</button>
+    </div>
+    <span id="status" class="status"></span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

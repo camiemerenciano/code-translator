@@ -1,0 +1,21 @@
+{
+  "name": "code-translator",
+  "version": "1.0.0",
+  "description": "Tradutor de código para português usando OpenAI",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "npx nodemon src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^6.34.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
