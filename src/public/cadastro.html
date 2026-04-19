@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro — Tradutor de Código</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🔤</div>
+    <h1>Tradutor de Código</h1>
+    <p class="subtitle">Crie sua conta gratuitamente</p>
+
+    <form id="cadastroForm" onsubmit="handleCadastro(event)">
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <input type="password" id="password" placeholder="••••••••" required autocomplete="new-password" minlength="6" />
+      </div>
+
+      <div class="field">
+        <label for="confirm">Confirmar senha</label>
+        <input type="password" id="confirm" placeholder="••••••••" required autocomplete="new-password" minlength="6" />
+      </div>
+
+      <div id="errorMsg" class="error-msg hidden"></div>
+      <div id="successMsg" class="success-msg hidden"></div>
+
+      <button type="submit" id="btnSubmit" class="btn-submit">
+        <span id="btnText">Cadastrar</span>
+        <span id="btnLoader" class="loader hidden"></span>
+      </button>
+    </form>
+
+    <p class="footer-link">Já tem conta? <a href="/login">Entrar</a></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="cadastro.js"></script>
+</body>
+</html>

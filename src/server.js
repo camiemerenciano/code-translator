@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const { OpenAI } = require("openai");
+const { createClient } = require("@supabase/supabase-js");
 const path = require("path");
 
 const app = express();
@@ -8,6 +9,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/login",    (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/cadastro", (req, res) => res.sendFile(path.join(__dirname, "public/cadastro.html")));
+
+// Supabase admin client (backend only — usa a service role key)
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn("⚠  SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não definidos — autenticação desativada em dev.");
+}
+const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 const SYSTEM_PROMPT = `Você é um tradutor especializado em código de programação.
 Quebre o código recebido em partes lógicas e traduza cada parte para português simples,
@@ -27,20 +39,74 @@ Regras:
 - Traduza de forma simples e cotidiana, sem jargão técnico
 - Retorne apenas o JSON, sem nenhum texto antes ou depois`;
 
+// ── Middleware: verifica JWT do Supabase ──────────────────────────────────────
+async function requireAuth(req, res, next) {
+  // Se Supabase não está configurado (dev local sem .env), permite passar
+  if (!supabase) return next();
+
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Não autenticado." });
+  }
+
+  const token = auth.slice(7);
+  const { data, error } = await supabase.auth.getUser(token);
+
+  if (error || !data?.user) {
+    return res.status(401).json({ error: "Sessão inválida ou expirada." });
+  }
+
+  req.user = data.user;
+  next();
+}
+
+// ── Rotas ─────────────────────────────────────────────────────────────────────
 app.get("/api/status", (req, res) => {
   res.json({ provider: "openai", model: "gpt-4o-mini", ok: true });
 });
 
-app.post("/api/traduzir", async (req, res) => {
-  const { codigo, linguagem, apiKey } = req.body;
+// Expõe apenas as variáveis seguras para o frontend
+app.get("/api/config", (req, res) => {
+  res.json({
+    supabaseUrl:     process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+  });
+});
+
+app.post("/api/cadastro", async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: "Supabase não configurado." });
+
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "E-mail e senha obrigatórios." });
+
+  // signUp com cliente anon para salvar senha corretamente
+  const anonClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  const { data: signUpData, error: signUpError } = await anonClient.auth.signUp({ email, password });
+
+  if (signUpError) {
+    if (signUpError.message.includes("already registered")) return res.status(400).json({ error: "Este e-mail já está cadastrado." });
+    return res.status(400).json({ error: signUpError.message });
+  }
+
+  const userId = signUpData.user?.id;
+  if (!userId) return res.status(500).json({ error: "Erro ao criar usuário." });
+
+  // Confirma o e-mail via admin para não precisar de verificação
+  await supabase.auth.admin.updateUserById(userId, { email_confirm: true });
+
+  res.json({ ok: true });
+});
+
+app.post("/api/traduzir", requireAuth, async (req, res) => {
+  const { codigo, linguagem } = req.body;
 
   if (!codigo || !linguagem) {
     return res.status(400).json({ error: "Campos obrigatórios: codigo, linguagem" });
   }
 
-  const key = apiKey || process.env.OPENAI_API_KEY;
+  const key = process.env.OPENAI_API_KEY;
   if (!key) {
-    return res.status(401).json({ error: "API Key da OpenAI não informada" });
+    return res.status(500).json({ error: "Chave OpenAI não configurada no servidor." });
   }
 
   try {
@@ -71,7 +137,7 @@ app.post("/api/traduzir", async (req, res) => {
     res.json({ parts: parsed.parts });
   } catch (err) {
     let msg = err.message || "Erro desconhecido";
-    if (err.status === 401) msg = "API Key inválida. Verifique sua chave.";
+    if (err.status === 401) msg = "Chave OpenAI inválida no servidor.";
     else if (err.status === 429) msg = "Limite de requisições atingido. Aguarde e tente novamente.";
     res.status(500).json({ error: msg });
   }

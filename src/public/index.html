@@ -15,17 +15,14 @@
         <p class="header-sub">cada parte do código ganha uma cor com sua tradução correspondente</p>
       </div>
     </div>
-    <span class="badge">powered by ChatGPT</span>
+    <div class="header-right">
+      <span class="badge">powered by ChatGPT</span>
+      <div class="user-info">
+        <span id="userEmail" class="user-email"></span>
+        <button id="btnLogout" class="btn-logout">Sair</button>
+      </div>
+    </div>
   </header>
-
-  <div class="api-bar">
-    <label for="apiKey">OpenAI API Key:</label>
-    <input type="password" id="apiKey" placeholder="sk-..." />
-    <button id="btnSalvarKey">Salvar</button>
-    <a href="https://platform.openai.com/api-keys" target="_blank" class="link-hint">
-      Obtenha em platform.openai.com →
-    </a>
-  </div>
 
   <main>
     <!-- Painel esquerdo -->
@@ -86,6 +83,8 @@
     <span id="status" class="status"></span>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
