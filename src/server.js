@@ -101,6 +101,18 @@ app.post("/api/cadastro", async (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/uso", requireAuth, async (req, res) => {
+  if (!supabase) return res.json({ count: 0 });
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("daily_usage")
+    .select("count")
+    .eq("user_id", req.user.id)
+    .eq("date", today)
+    .single();
+  res.json({ count: data?.count || 0 });
+});
+
 app.post("/api/traduzir", requireAuth, async (req, res) => {
   const { codigo, linguagem } = req.body;
 
@@ -136,6 +148,12 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
 
     if (!parsed.parts || !Array.isArray(parsed.parts)) {
       return res.status(500).json({ error: "Resposta inesperada do modelo. Tente novamente." });
+    }
+
+    // Registra uso diário
+    if (supabase && req.user) {
+      const today = new Date().toISOString().slice(0, 10);
+      await supabase.rpc("increment_daily_usage", { uid: req.user.id, d: today });
     }
 
     res.json({ parts: parsed.parts });

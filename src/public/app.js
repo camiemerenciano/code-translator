@@ -61,6 +61,7 @@ async function traduzir() {
 
     renderResultado(codigo, data.parts);
     setStatus("✓ Tradução concluída", "ok");
+    atualizarContador();
   } catch (err) {
     outputEl.innerHTML = "";
     setStatus("✗ " + err.message, "err");
@@ -138,6 +139,17 @@ function carregarExemplo() {
     "LIMIT 10;";
   inputCodigo.focus();
 }
+
+async function atualizarContador() {
+  const token = getAccessToken();
+  if (!token) return;
+  const res = await fetch("/api/uso", { headers: { Authorization: `Bearer ${token}` } });
+  const { count } = await res.json();
+  const el = document.getElementById("usageCount");
+  if (el) el.textContent = `${count} tradução${count !== 1 ? "ões" : ""} hoje`;
+}
+
+atualizarContador();
 
 function setStatus(msg, type) {
   statusEl.textContent = msg;
