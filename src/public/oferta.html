@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nunca Mais Trave em Código — Oferta Fundadores</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1A1A1A;
+    color: #F5F0EB;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+  }
+
+  .page { padding: 2.5rem 1.25rem 4rem; }
+
+  .container {
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  /* Hero */
+  .hero { text-align: center; margin-bottom: 2rem; }
+
+  .icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #C1440E;
+    color: #F5F0EB;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #F5F0EB;
+    margin-bottom: 0.875rem;
+  }
+
+  .hero h1 span { color: #E8956D; }
+
+  .hero p {
+    font-size: 15px;
+    color: #aaa;
+    line-height: 1.7;
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  /* Price card */
+  .price-card {
+    background: #2a1a10;
+    border: 1.5px solid #C1440E;
+    border-radius: 16px;
+    padding: 1.75rem;
+    text-align: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .price-label {
+    font-size: 11px;
+    color: #E8956D;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .price-value {
+    font-size: 56px;
+    font-weight: 700;
+    color: #F5F0EB;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .price-desc {
+    font-size: 13px;
+    color: #888;
+  }
+
+  .scarcity {
+    display: inline-block;
+    margin-top: 0.875rem;
+    font-size: 12px;
+    color: #C1440E;
+    font-weight: 600;
+    background: rgba(193,68,14,0.12);
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  /* Cards */
+  .card {
+    background: #242424;
+    border: 0.5px solid #333;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .card-title {
+    font-size: 11px;
+    color: #E8956D;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 1.125rem;
+  }
+
+  .item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 0.875rem;
+  }
+
+  .item:last-child { margin-bottom: 0; }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: #C1440E;
+    border-radius: 50%;
+    margin-top: 8px;
+    flex-shrink: 0;
+  }
+
+  .item-text {
+    font-size: 14px;
+    color: #bbb;
+    line-height: 1.55;
+  }
+
+  .item-text strong { color: #F5F0EB; font-weight: 500; }
+
+  /* Pix steps */
+  .pix-step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .pix-step:last-child { margin-bottom: 0; }
+
+  .step-num {
+    width: 24px;
+    height: 24px;
+    background: #C1440E;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #F5F0EB;
+    flex-shrink: 0;
+  }
+
+  .step-text {
+    font-size: 14px;
+    color: #bbb;
+    line-height: 1.55;
+    padding-top: 2px;
+  }
+
+  .step-text strong { color: #F5F0EB; font-weight: 500; }
+
+  .pix-key {
+    background: #1A1A1A;
+    border: 0.5px solid #444;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #E8956D;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0.5rem 0 0.25rem;
+    gap: 8px;
+  }
+
+  .copy-btn {
+    background: #C1440E;
+    color: #F5F0EB;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .copy-btn:hover { background: #a33a0c; }
+
+  /* CTA buttons */
+  .cta-primary {
+    display: block;
+    background: #C1440E;
+    color: #F5F0EB;
+    text-decoration: none;
+    text-align: center;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 0.875rem;
+    transition: background 0.15s;
+  }
+
+  .cta-primary:hover { background: #a33a0c; }
+
+  .cta-secondary {
+    display: block;
+    background: transparent;
+    color: #E8956D;
+    text-decoration: none;
+    text-align: center;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    border: 0.5px solid #C1440E;
+    margin-bottom: 1.75rem;
+    transition: background 0.15s;
+  }
+
+  .cta-secondary:hover { background: rgba(193,68,14,0.08); }
+
+  /* Guarantee */
+  .guarantee {
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.7;
+  }
+
+  .guarantee strong { color: #999; }
+
+  /* Divider */
+  hr {
+    border: none;
+    border-top: 0.5px solid #2a2a2a;
+    margin: 1.5rem 0;
+  }
+
+  /* Problem section */
+  .problem-list {
+    list-style: none;
+    margin-top: 0.75rem;
+  }
+
+  .problem-list li {
+    font-size: 14px;
+    color: #bbb;
+    padding: 6px 0;
+    padding-left: 1.25rem;
+    position: relative;
+  }
+
+  .problem-list li::before {
+    content: '✗';
+    position: absolute;
+    left: 0;
+    color: #C1440E;
+    font-weight: 700;
+  }
+
+  @media (max-width: 400px) {
+    .hero h1 { font-size: 1.75rem; }
+    .price-value { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="container">
+
+  <div class="hero">
+    <span class="icon">&lt;/&gt;</span>
+    <div class="badge">oferta fundadores</div>
+    <h1>Nunca Mais<br><span>Trave em Código</span></h1>
+    <p>Uma ferramenta que traduz qualquer código pra português, linha por linha. Entenda o que está acontecendo em segundos — mesmo sendo iniciante.</p>
+  </div>
+
+  <div class="price-card">
+    <div class="price-label">acesso vitalício</div>
+    <div class="price-value">R$10</div>
+    <div class="price-desc">pagamento único — sem mensalidade, sem renovação</div>
+    <div class="scarcity">Apenas para os primeiros 20 usuários</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">o que você recebe</div>
+    <div class="item"><div class="dot"></div><div class="item-text"><strong>Acesso vitalício à ferramenta</strong> — cole qualquer código e receba a explicação em português</div></div>
+    <div class="item"><div class="dot"></div><div class="item-text"><strong>14 linguagens</strong> — SQL, Python, JavaScript, TypeScript, Java, C#, PHP, Ruby, Go, Shell, HTML, Kotlin, Swift e Rust</div></div>
+    <div class="item"><div class="dot"></div><div class="item-text"><strong>Cores correspondentes</strong> — cada trecho do código vinculado à sua explicação</div></div>
+    <div class="item"><div class="dot"></div><div class="item-text"><strong>Comunidade no WhatsApp</strong> — ambiente sem julgamento pra tirar dúvidas com pessoas no mesmo nível</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">isso é pra você se...</div>
+    <ul class="problem-list">
+      <li>Você abre um código e não entende nada</li>
+      <li>Copia e cola sem saber o que está fazendo</li>
+      <li>Depende de tutorial ou IA pra tudo</li>
+      <li>Se sente travado e acha que o problema é você</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">como garantir seu acesso</div>
+    <div class="pix-step">
+      <div class="step-num">1</div>
+      <div class="step-text">Crie sua conta gratuitamente em <strong>code-translator-production.up.railway.app</strong></div>
+    </div>
+    <div class="pix-step">
+      <div class="step-num">2</div>
+      <div class="step-text">Faça o Pix de <strong>R$10</strong> para a chave abaixo (CNPJ)</div>
+    </div>
+    <div class="pix-key">
+      <span>48.872.622/0001-36</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('48.872.622/0001-36');this.textContent='Copiado!';setTimeout(()=>this.textContent='Copiar',2000)">Copiar</button>
+    </div>
+    <div class="pix-step">
+      <div class="step-num">3</div>
+      <div class="step-text">Preencha o formulário com seu nome, email usado no cadastro e comprovante do Pix</div>
+    </div>
+    <div class="pix-step">
+      <div class="step-num">4</div>
+      <div class="step-text">Aguarde até <strong>24h</strong> — você recebe a confirmação e o link da comunidade no WhatsApp</div>
+    </div>
+  </div>
+
+  <a href="https://forms.gle/oKiHLzF4mvUTUbip9" class="cta-primary">Preencher formulário após o Pix</a>
+  <a href="https://code-translator-production.up.railway.app" class="cta-secondary">Conhecer a ferramenta antes</a>
+
+  <div class="guarantee">
+    <strong>Garantia de 7 dias</strong><br>
+    Testou, não gostou — dinheiro de volta.<br>Simples, direto, sem risco.
+  </div>
+
+</div>
+</div>
+</body>
+</html>
