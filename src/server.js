@@ -14,11 +14,15 @@ app.get("/login",    (req, res) => res.sendFile(path.join(__dirname, "public/log
 app.get("/cadastro", (req, res) => res.sendFile(path.join(__dirname, "public/cadastro.html")));
 
 // Supabase admin client (backend only — usa a service role key)
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn("⚠  SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não definidos — autenticação desativada em dev.");
+const SUPABASE_URL      = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY      || process.env.SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_SVC_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SVC_KEY) {
+  console.warn("⚠  SUPABASE_URL ou service role key não definidos — autenticação desativada em dev.");
 }
-const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+const supabase = (SUPABASE_URL && SUPABASE_SVC_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SVC_KEY)
   : null;
 
 const SYSTEM_PROMPT = `Você é um tradutor especializado em código de programação.
@@ -68,8 +72,8 @@ app.get("/api/status", (req, res) => {
 // Expõe apenas as variáveis seguras para o frontend
 app.get("/api/config", (req, res) => {
   res.json({
-    supabaseUrl:     process.env.SUPABASE_URL,
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    supabaseUrl:     SUPABASE_URL,
+    supabaseAnonKey: SUPABASE_ANON_KEY,
   });
 });
 
@@ -80,7 +84,7 @@ app.post("/api/cadastro", async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: "E-mail e senha obrigatórios." });
 
   // signUp com cliente anon para salvar senha corretamente
-  const anonClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { data: signUpData, error: signUpError } = await anonClient.auth.signUp({ email, password });
 
   if (signUpError) {
