@@ -41,8 +41,30 @@ Retorne SOMENTE um JSON válido, sem markdown, sem blocos de código, apenas o J
 
 Regras:
 - Cada "code" deve ser copiado exatamente como está no código original
-- Use no máximo 8 partes
 - Traduza de forma simples e cotidiana, sem jargão técnico
+- Retorne apenas o JSON, sem nenhum texto antes ou depois`;
+
+const ERROR_PROMPT = `Você é um especialista em interpretar mensagens de erro de sistemas e APIs.
+Analise a mensagem de erro recebida e explique em português simples:
+1. O que deu errado (o problema principal)
+2. Onde aconteceu (se identificável)
+3. O que provavelmente causou o erro
+4. O que pode ser feito para resolver
+
+Divida a explicação em partes lógicas baseadas no conteúdo do erro.
+
+Retorne SOMENTE um JSON válido, sem markdown, sem blocos de código, apenas o JSON puro:
+{
+  "parts": [
+    { "id": 1, "code": "trecho relevante do erro", "translation": "explicação em português simples" },
+    { "id": 2, "code": "próximo trecho relevante", "translation": "explicação em português simples" }
+  ]
+}
+
+Regras:
+- Em "code" coloque o trecho do erro original que você está explicando
+- Em "translation" explique de forma clara, como se falasse com alguém leigo
+- Foque no que importa: o que é, por que aconteceu, como resolver
 - Retorne apenas o JSON, sem nenhum texto antes ou depois`;
 
 // ── Middleware: verifica JWT do Supabase ──────────────────────────────────────
@@ -181,12 +203,18 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
   try {
     const openai = new OpenAI({ apiKey: key });
 
+    const isJson = linguagem === "JSON";
+    const prompt = isJson ? ERROR_PROMPT : SYSTEM_PROMPT;
+    const userContent = isJson
+      ? `Conteúdo JSON:\n${codigo}`
+      : `Linguagem: ${linguagem}\n\nCódigo:\n${codigo}`;
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Linguagem: ${linguagem}\n\nCódigo:\n${codigo}` },
+        { role: "system", content: prompt },
+        { role: "user", content: userContent },
       ],
     });
 
