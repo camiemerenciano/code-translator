@@ -1,6 +1,5 @@
 const btnTraduzir  = document.getElementById("btnTraduzir");
 const btnLimpar    = document.getElementById("btnLimpar");
-const btnExemplo   = document.getElementById("btnExemplo");
 const btnCopiar    = document.getElementById("btnCopiar");
 const btnLogout    = document.getElementById("btnLogout");
 const btnEditar    = document.getElementById("btnEditar");
@@ -25,7 +24,6 @@ const COLORS = [
 btnTraduzir.addEventListener("click", traduzir);
 btnLimpar.addEventListener("click", limpar);
 btnCopiar.addEventListener("click", copiar);
-btnExemplo.addEventListener("click", carregarExemplo);
 btnLogout.addEventListener("click", logout);
 btnEditar.addEventListener("click", voltarParaEditar);
 btnDetectar.addEventListener("click", detectarLinguagem);
@@ -175,19 +173,6 @@ function copiar() {
     .join(" ");
   if (!partes) return setStatus("Nada para copiar", "err");
   navigator.clipboard.writeText(partes).then(() => setStatus("✓ Copiado!", "ok"));
-}
-
-function carregarExemplo() {
-  voltarParaEditar();
-  document.getElementById("linguagem").value = "SQL";
-  inputCodigo.value =
-    "SELECT p.nome, p.preco, c.descricao\n" +
-    "FROM Produto p\n" +
-    "INNER JOIN Categoria c ON p.categoria_id = c.id\n" +
-    "WHERE p.preco > 100\n" +
-    "ORDER BY p.preco DESC\n" +
-    "LIMIT 10;";
-  inputCodigo.focus();
 }
 
 async function atualizarContador() {
