@@ -79,6 +79,57 @@ app.get("/api/config", (req, res) => {
   });
 });
 
+app.post("/api/recuperar-senha", async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: "Supabase não configurado." });
+
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "E-mail obrigatório." });
+
+  const redirectTo = process.env.APP_URL
+    ? `${process.env.APP_URL}/reset-senha`
+    : "http://localhost:3000/reset-senha";
+
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo },
+  });
+
+  if (error) return res.status(400).json({ error: error.message });
+
+  const link = data?.properties?.action_link;
+  if (!link) return res.status(500).json({ error: "Erro ao gerar link de recuperação." });
+
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_KEY) return res.status(500).json({ error: "Serviço de e-mail não configurado." });
+
+  const emailRes = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${RESEND_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: process.env.EMAIL_FROM || "noreply@husers.com.br",
+      to: email,
+      subject: "Recuperação de senha — Tradutor de Código",
+      html: `
+        <p>Olá,</p>
+        <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+        <p><a href="${link}" style="background:#C1440E;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;">Redefinir senha</a></p>
+        <p style="color:#888;font-size:12px;">Se você não solicitou isso, ignore este e-mail. O link expira em 1 hora.</p>
+      `,
+    }),
+  });
+
+  if (!emailRes.ok) {
+    const err = await emailRes.json();
+    return res.status(500).json({ error: "Erro ao enviar e-mail: " + (err.message || emailRes.status) });
+  }
+
+  res.json({ ok: true });
+});
+
 app.post("/api/cadastro", async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Supabase não configurado." });
 

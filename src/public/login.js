@@ -64,18 +64,25 @@ async function handleRecovery(e) {
   document.getElementById("btnRecoveryText").classList.add("hidden");
   document.getElementById("btnRecoveryLoader").classList.remove("hidden");
 
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + "/reset-senha",
-  });
+  let errorMsg = null;
+  try {
+    const res = await fetch("/api/recuperar-senha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) errorMsg = data.error || "Erro ao enviar.";
+  } catch (err) {
+    errorMsg = "Erro de conexão. Tente novamente.";
+  }
 
   document.getElementById("btnRecovery").disabled = false;
   document.getElementById("btnRecoveryText").classList.remove("hidden");
   document.getElementById("btnRecoveryLoader").classList.add("hidden");
 
-  msgEl.className = error ? "error-msg" : "success-msg";
-  msgEl.textContent = error
-    ? "Erro ao enviar. Verifique o e-mail informado."
-    : "Link enviado! Verifique sua caixa de entrada.";
+  msgEl.className = errorMsg ? "error-msg" : "success-msg";
+  msgEl.textContent = errorMsg || "Link enviado! Verifique sua caixa de entrada.";
   msgEl.classList.remove("hidden");
 }
 
