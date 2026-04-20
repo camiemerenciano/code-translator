@@ -288,13 +288,21 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
       return res.status(500).json({ error: "Resposta inesperada do modelo. Tente novamente." });
     }
 
-    // Registra uso diário
+    // Registra uso diário e retorna contagem atualizada
+    let usageCount = null;
     if (supabase && req.user) {
       const today = new Date().toISOString().slice(0, 10);
       await supabase.rpc("increment_daily_usage", { uid: req.user.id, d: today });
+      const { data: usage } = await supabase
+        .from("daily_usage")
+        .select("count")
+        .eq("user_id", req.user.id)
+        .eq("date", today)
+        .single();
+      usageCount = usage?.count ?? null;
     }
 
-    res.json({ parts: parsed.parts });
+    res.json({ parts: parsed.parts, usageCount });
   } catch (err) {
     let msg = err.message || "Erro desconhecido";
     if (err.status === 401) msg = "Chave OpenAI inválida no servidor.";

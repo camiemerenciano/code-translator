@@ -106,7 +106,12 @@ async function traduzir() {
 
     renderResultado(codigo, data.parts);
     setStatus("✓ Tradução concluída", "ok");
-    atualizarContador();
+    if (data.usageCount !== null && data.usageCount !== undefined) {
+      const el = document.getElementById("usageCount");
+      if (el) el.textContent = `${data.usageCount} ${data.usageCount !== 1 ? "traduções" : "tradução"} hoje`;
+    } else {
+      atualizarContador();
+    }
   } catch (err) {
     outputEl.innerHTML = "";
     setStatus("✗ " + err.message, "err");
