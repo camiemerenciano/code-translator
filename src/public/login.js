@@ -42,49 +42,6 @@ function friendlyError(msg) {
   return "Erro: " + msg;
 }
 
-let recoveryMode = false;
-
-function toggleRecovery(e) {
-  e.preventDefault();
-  recoveryMode = !recoveryMode;
-  document.getElementById("loginForm").classList.toggle("hidden", recoveryMode);
-  document.getElementById("recoveryForm").classList.toggle("hidden", !recoveryMode);
-  document.getElementById("linkForgot").textContent = recoveryMode ? "Voltar ao login" : "Esqueceu a senha?";
-  document.getElementById("recoveryMsg").classList.add("hidden");
-}
-
-async function handleRecovery(e) {
-  e.preventDefault();
-  if (!supabaseClient) return;
-
-  const email = document.getElementById("recoveryEmail").value.trim();
-  const msgEl = document.getElementById("recoveryMsg");
-
-  document.getElementById("btnRecovery").disabled = true;
-  document.getElementById("btnRecoveryText").classList.add("hidden");
-  document.getElementById("btnRecoveryLoader").classList.remove("hidden");
-
-  let errorMsg = null;
-  try {
-    const res = await fetch("/api/recuperar-senha", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    if (!res.ok) errorMsg = data.error || "Erro ao enviar.";
-  } catch (err) {
-    errorMsg = "Erro de conexão. Tente novamente.";
-  }
-
-  document.getElementById("btnRecovery").disabled = false;
-  document.getElementById("btnRecoveryText").classList.remove("hidden");
-  document.getElementById("btnRecoveryLoader").classList.add("hidden");
-
-  msgEl.className = errorMsg ? "error-msg" : "success-msg";
-  msgEl.textContent = errorMsg || "Link enviado! Verifique sua caixa de entrada.";
-  msgEl.classList.remove("hidden");
-}
 
 function setLoading(on) {
   document.getElementById("btnSubmit").disabled = on;
