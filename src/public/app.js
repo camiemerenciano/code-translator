@@ -11,14 +11,14 @@ const outputEl     = document.getElementById("outputTraducao");
 const statusEl     = document.getElementById("status");
 
 const COLORS = [
-  { bg: "#2a3556", text: "#89b4fa", border: "#89b4fa" },
-  { bg: "#1e3328", text: "#a6e3a1", border: "#a6e3a1" },
-  { bg: "#38321a", text: "#f9e2af", border: "#f9e2af" },
-  { bg: "#38251a", text: "#fab387", border: "#fab387" },
-  { bg: "#381a23", text: "#f38ba8", border: "#f38ba8" },
-  { bg: "#2a1e3b", text: "#cba6f7", border: "#cba6f7" },
-  { bg: "#1a3030", text: "#94e2d5", border: "#94e2d5" },
-  { bg: "#38202a", text: "#eba0ac", border: "#eba0ac" },
+  { bg: "#3d1a0a", text: "#E8956D", border: "#C1440E" },
+  { bg: "#2a1500", text: "#f9c784", border: "#d97b00" },
+  { bg: "#1e1000", text: "#e0a060", border: "#b06020" },
+  { bg: "#3a0e0e", text: "#f4826e", border: "#c0392b" },
+  { bg: "#2e1a08", text: "#dba070", border: "#a05020" },
+  { bg: "#1a1200", text: "#c8a060", border: "#906030" },
+  { bg: "#3b1208", text: "#f09070", border: "#b03010" },
+  { bg: "#251800", text: "#d49060", border: "#8b4513" },
 ];
 
 btnTraduzir.addEventListener("click", traduzir);
@@ -67,7 +67,7 @@ async function traduzir() {
     setStatus("✗ " + err.message, "err");
   } finally {
     btnTraduzir.disabled = false;
-    btnTraduzir.textContent = "▶ Traduzir";
+    btnTraduzir.textContent = "→ Traduzir";
   }
 }
 
@@ -146,7 +146,7 @@ async function atualizarContador() {
   const res = await fetch("/api/uso", { headers: { Authorization: `Bearer ${token}` } });
   const { count } = await res.json();
   const el = document.getElementById("usageCount");
-  if (el) el.textContent = `${count} tradução${count !== 1 ? "ões" : ""} hoje`;
+  if (el) el.textContent = `${count} ${count !== 1 ? "traduções" : "tradução"} hoje`;
 }
 
 atualizarContador();

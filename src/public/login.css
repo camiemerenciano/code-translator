@@ -1,14 +1,13 @@
 :root {
-  --bg: #1e1e2e;
-  --bg2: #181825;
-  --surface: #313244;
-  --surface2: #45475a;
-  --text: #cdd6f4;
-  --muted: #6c7086;
-  --blue: #89b4fa;
-  --green: #a6e3a1;
+  --bg: #391210;
+  --bg2: #242424;
+  --surface: #333333;
+  --surface2: #444444;
+  --text: #F5F0EB;
+  --muted: #888880;
+  --accent: #C1440E;
+  --accent2: #E8956D;
   --red: #f38ba8;
-  --purple: #cba6f7;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,26 +18,38 @@ body {
   color: var(--text);
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  background-image: radial-gradient(ellipse at 60% 40%, #5a1a0e22 0%, transparent 70%);
+}
+
+.logo-hero {
+  width: min(90vw, 600px);
+  height: auto;
+  margin-bottom: 32px;
+  border-radius: 24px;
 }
 
 .card {
   background: var(--bg2);
   border: 1px solid var(--surface);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 40px 36px;
   width: 100%;
   max-width: 400px;
   text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
 }
 
-.logo { font-size: 32px; font-family: "Courier New", monospace; font-weight: 700; color: var(--purple); margin-bottom: 12px; letter-spacing: -2px; }
+.logo { font-size: 40px; margin-bottom: 12px; }
 
-h1 { font-size: 22px; color: var(--purple); font-weight: 700; margin-bottom: 6px; }
+.logo-img { max-width: 180px; height: auto; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; }
 
-.subtitle { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+h1 { font-size: 22px; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+
+.subtitle { font-size: 13px; color: var(--accent2); margin-bottom: 28px; }
 
 /* Tabs */
 .tabs {
@@ -91,7 +102,7 @@ h1 { font-size: 22px; color: var(--purple); font-weight: 700; margin-bottom: 6px
   outline: none;
   transition: border-color 0.2s;
 }
-.field input:focus { border-color: var(--blue); }
+.field input:focus { border-color: var(--accent); }
 
 /* Messages */
 .error-msg {
@@ -118,8 +129,8 @@ h1 { font-size: 22px; color: var(--purple); font-weight: 700; margin-bottom: 6px
 /* Submit button */
 .btn-submit {
   width: 100%;
-  background: var(--blue);
-  color: #1e1e2e;
+  background: var(--accent);
+  color: #fff;
   border: none;
   border-radius: 8px;
   padding: 12px;
@@ -130,10 +141,10 @@ h1 { font-size: 22px; color: var(--purple); font-weight: 700; margin-bottom: 6px
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: opacity 0.2s;
+  transition: background 0.2s;
   margin-top: 4px;
 }
-.btn-submit:hover { opacity: 0.85; }
+.btn-submit:hover { background: #a33a0c; }
 .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Loader spinner */
@@ -155,7 +166,13 @@ h1 { font-size: 22px; color: var(--purple); font-weight: 700; margin-bottom: 6px
   color: var(--muted);
 }
 .footer-link a {
-  color: var(--blue);
+  color: var(--accent2);
   text-decoration: none;
 }
 .footer-link a:hover { text-decoration: underline; }
+
+/* Loader */
+.loader {
+  border-color: #fff;
+  border-top-color: transparent;
+}
