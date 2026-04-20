@@ -10,9 +10,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/login",    (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/cadastro", (req, res) => res.sendFile(path.join(__dirname, "public/cadastro.html")));
-app.get("/oferta",   (req, res) => res.sendFile(path.join(__dirname, "public/oferta.html")));
+app.get("/login",       (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/cadastro",   (req, res) => res.sendFile(path.join(__dirname, "public/cadastro.html")));
+app.get("/oferta",     (req, res) => res.sendFile(path.join(__dirname, "public/oferta.html")));
+app.get("/reset-senha",(req, res) => res.sendFile(path.join(__dirname, "public/reset-senha.html")));
 
 // Supabase admin client (backend only — usa a service role key)
 const SUPABASE_URL      = process.env.SUPABASE_URL;

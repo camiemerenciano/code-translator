@@ -32,7 +32,24 @@
       </button>
     </form>
 
-    <p class="footer-link">Não tem conta? <a href="/cadastro">Cadastre-se</a></p>
+    <!-- Formulário de recuperação (oculto por padrão) -->
+    <form id="recoveryForm" onsubmit="handleRecovery(event)" class="hidden">
+      <p class="recovery-info">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+      <div class="field">
+        <label for="recoveryEmail">E-mail</label>
+        <input type="email" id="recoveryEmail" placeholder="seu@email.com" required autocomplete="email" />
+      </div>
+      <div id="recoveryMsg" class="hidden"></div>
+      <button type="submit" id="btnRecovery" class="btn-submit">
+        <span id="btnRecoveryText">Enviar link</span>
+        <span id="btnRecoveryLoader" class="loader hidden"></span>
+      </button>
+    </form>
+
+    <div class="footer-links">
+      <p class="footer-link"><a href="#" id="linkForgot" onclick="toggleRecovery(event)">Esqueceu a senha?</a></p>
+      <p class="footer-link">Não tem conta? <a href="/cadastro">Cadastre-se</a></p>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>

@@ -1,21 +1,22 @@
 :root {
-  --bg: #391210;
+  --bg: #1e1e1e;
   --bg2: #242424;
-  --surface: #333333;
-  --surface2: #444444;
+  --surface: #2e2e2e;
+  --surface2: #3a3a3a;
   --text: #F5F0EB;
   --muted: #888880;
   --accent: #C1440E;
   --accent2: #E8956D;
   --red: #f38ba8;
   --yellow: #f9e2af;
+  --divider: #333333;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: "Segoe UI", system-ui, sans-serif;
-  background: var(--bg);
+  background: var(--bg2);
   color: var(--text);
   height: 100vh;
   display: flex;
@@ -25,70 +26,108 @@ body {
 
 /* ── Header ── */
 header {
+  height: 44px;
   background: var(--bg2);
-  padding: 14px 24px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--surface);
+  border-bottom: 1px solid var(--divider);
   flex-shrink: 0;
 }
-.header-left { display: flex; align-items: center; gap: 12px; }
-.header-icon { font-size: 22px; }
-h1 { font-size: 20px; color: var(--accent); font-weight: 700; }
-.header-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.badge { font-size: 11px; background: var(--surface); color: var(--accent2); padding: 4px 10px; border-radius: 20px; }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.user-info { display: flex; align-items: center; gap: 8px; }
-.user-email { font-size: 12px; color: var(--muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.usage-count { font-size: 12px; color: #fff; background: var(--accent); padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
-.btn-logout { background: var(--surface); color: var(--accent2); border: 1px solid var(--surface2); border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
-.btn-logout:hover { background: var(--surface2); }
 
-/* ── Main layout ── */
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-logo { height: 26px; width: auto; border-radius: 5px; }
+.header-icon { font-size: 16px; color: var(--muted); }
+h1 { font-size: 15px; color: var(--accent2); font-weight: 700; }
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+.badge {
+  font-size: 10px;
+  background: rgba(193,68,14,0.15);
+  color: var(--accent2);
+  border: 1px solid rgba(193,68,14,0.3);
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.user-email { font-size: 12px; color: var(--muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usage-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.btn-logout {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--surface2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-logout:hover { background: var(--surface); color: var(--text); }
+
+/* ── Main layout — 2 colunas sem gap, divididas por borda ── */
 main {
   display: grid;
   grid-template-columns: 1fr 1fr;
   flex: 1;
   overflow: hidden;
-  padding: 16px 24px;
-  gap: 16px;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
-  background: var(--bg2);
-  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid var(--surface);
+}
+
+.panel:first-child {
+  border-right: 1px solid var(--divider);
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--surface2);
+  padding: 0 16px;
+  height: 38px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--divider);
   flex-shrink: 0;
 }
-.panel-title { font-size: 13px; font-weight: 700; color: var(--accent2); }
-.output-title { color: var(--accent2); }
+.panel-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.output-title { color: var(--muted); }
 
 .lang-select { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .lang-select select {
-  background: var(--bg2); border: 1px solid var(--surface2);
-  border-radius: 6px; color: var(--text); padding: 4px 8px; font-size: 12px; cursor: pointer; outline: none;
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
 }
 
 /* ── Textarea ── */
 textarea#inputCodigo {
   flex: 1;
-  background: transparent; border: none;
-  color: var(--text); font-family: "Courier New", monospace;
-  font-size: 13px; line-height: 1.6;
-  padding: 16px; resize: none; outline: none;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 16px;
+  resize: none;
+  outline: none;
 }
 textarea#inputCodigo::placeholder { color: var(--muted); }
 textarea#inputCodigo.hidden { display: none; }
@@ -106,9 +145,10 @@ textarea#inputCodigo.hidden { display: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 16px;
+  padding: 0 16px;
+  height: 32px;
   background: var(--bg);
-  border-bottom: 1px solid var(--surface);
+  border-bottom: 1px solid var(--divider);
   font-size: 11px;
   color: var(--muted);
   flex-shrink: 0;
@@ -144,45 +184,50 @@ mark.cm {
 }
 .output-box:empty::before {
   content: "A tradução aparecerá aqui com cores correspondentes ao código...";
-  color: var(--muted); font-style: italic; font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  font-size: 13px;
 }
 
 .translation-part {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
   animation: fadeIn 0.25s ease;
+  border-radius: 6px;
+  overflow: hidden;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
 .part-code {
   display: inline-flex;
   align-items: center;
-  border-radius: 5px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   font-size: 12px;
   font-family: "Courier New", monospace;
   white-space: pre-wrap;
   word-break: break-all;
   max-width: 100%;
+  opacity: 0.95;
 }
 
 .part-translation {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 5px 10px 5px 12px;
-  background: var(--bg);
-  border-radius: 5px;
+  padding: 6px 12px;
   font-size: 13px;
   line-height: 1.5;
   color: var(--text);
+  background: rgba(255,255,255,0.04);
+  border-left: 3px solid rgba(255,255,255,0.1);
 }
 
 .part-arrow {
   font-size: 13px;
   flex-shrink: 0;
   margin-top: 1px;
+  opacity: 0.6;
 }
 
 .loading-msg {
@@ -195,38 +240,61 @@ mark.cm {
 
 /* ── Footer ── */
 footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 24px;
-  background: var(--bg2); border-top: 1px solid var(--surface); flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--bg2);
+  border-top: 1px solid var(--divider);
+  flex-shrink: 0;
 }
 .footer-left { display: flex; align-items: center; gap: 10px; }
 
 .btn-primary {
-  background: var(--accent); color: #fff; border: none;
-  border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
   transition: background 0.2s;
 }
 .btn-primary:hover { background: #a33a0c; }
 .btn-primary:disabled { background: var(--muted); cursor: not-allowed; }
 
 .btn-secondary {
-  background: transparent; color: var(--text);
-  border: 1px solid var(--surface2); border-radius: 8px;
-  padding: 9px 16px; font-size: 13px; cursor: pointer;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--surface2);
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
 }
 .btn-secondary:hover { background: var(--surface); }
 
 .btn-ghost {
-  background: transparent; color: var(--accent2);
-  border: 1px solid var(--accent); border-radius: 8px;
-  padding: 9px 16px; font-size: 13px; cursor: pointer;
+  background: transparent;
+  color: var(--accent2);
+  border: 1px solid rgba(193,68,14,0.4);
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
 }
 .btn-ghost:hover { background: rgba(193,68,14,0.1); }
 
 .btn-ghost-sm {
-  background: transparent; color: var(--accent2);
-  border: 1px solid var(--surface2); border-radius: 5px;
-  padding: 3px 10px; font-size: 11px; cursor: pointer;
+  background: transparent;
+  color: var(--accent2);
+  border: 1px solid var(--surface2);
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
 }
 .btn-ghost-sm:hover { background: var(--surface); }
 

@@ -160,8 +160,8 @@ h1 { font-size: 22px; color: var(--accent); font-weight: 700; margin-bottom: 6px
 
 .hidden { display: none !important; }
 
+.footer-links { margin-top: 20px; display: flex; flex-direction: column; gap: 6px; }
 .footer-link {
-  margin-top: 20px;
   font-size: 13px;
   color: var(--muted);
 }
@@ -170,6 +170,13 @@ h1 { font-size: 22px; color: var(--accent); font-weight: 700; margin-bottom: 6px
   text-decoration: none;
 }
 .footer-link a:hover { text-decoration: underline; }
+
+.recovery-info {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
 
 /* Loader */
 .loader {

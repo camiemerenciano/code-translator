@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Senha — Tradutor de Código</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <img src="logo.png" alt="Logo" class="logo-hero" />
+  <div class="card">
+    <div class="logo">&lt;/&gt;</div>
+    <h1>Redefinir Senha</h1>
+    <p class="subtitle">Digite sua nova senha abaixo</p>
+
+    <div id="loading" class="recovery-info">Verificando link...</div>
+
+    <form id="resetForm" onsubmit="handleReset(event)" class="hidden">
+      <div class="field">
+        <label for="password">Nova senha</label>
+        <input type="password" id="password" placeholder="••••••••" required minlength="6" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label for="confirm">Confirmar senha</label>
+        <input type="password" id="confirm" placeholder="••••••••" required minlength="6" autocomplete="new-password" />
+      </div>
+
+      <div id="errorMsg" class="error-msg hidden"></div>
+
+      <button type="submit" id="btnSubmit" class="btn-submit">
+        <span id="btnText">Salvar nova senha</span>
+        <span id="btnLoader" class="loader hidden"></span>
+      </button>
+    </form>
+
+    <div id="successView" class="hidden">
+      <p class="recovery-info" style="color: #a6e3a1; margin-bottom: 20px;">Senha redefinida com sucesso!</p>
+      <a href="/login" class="btn-submit" style="text-decoration:none; display:block; text-align:center;">Ir para o login</a>
+    </div>
+
+    <div id="invalidView" class="hidden">
+      <p class="error-msg" style="margin-bottom: 20px;">Link inválido ou expirado. Solicite um novo link de recuperação.</p>
+      <a href="/login" class="btn-submit" style="text-decoration:none; display:block; text-align:center;">Voltar ao login</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="reset-senha.js"></script>
+</body>
+</html>
