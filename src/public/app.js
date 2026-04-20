@@ -4,6 +4,7 @@ const btnExemplo   = document.getElementById("btnExemplo");
 const btnCopiar    = document.getElementById("btnCopiar");
 const btnLogout    = document.getElementById("btnLogout");
 const btnEditar    = document.getElementById("btnEditar");
+const btnDetectar  = document.getElementById("btnDetectar");
 const inputCodigo  = document.getElementById("inputCodigo");
 const codeColored  = document.getElementById("codeColored");
 const codeColoredContent = document.getElementById("codeColoredContent");
@@ -27,10 +28,54 @@ btnCopiar.addEventListener("click", copiar);
 btnExemplo.addEventListener("click", carregarExemplo);
 btnLogout.addEventListener("click", logout);
 btnEditar.addEventListener("click", voltarParaEditar);
+btnDetectar.addEventListener("click", detectarLinguagem);
 
 inputCodigo.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") traduzir();
 });
+
+async function detectarLinguagem() {
+  const codigo = inputCodigo.value.trim();
+  const token = getAccessToken();
+  if (!codigo) return setStatus("⚠ Cole um código primeiro", "err");
+  if (!token)  return setStatus("⚠ Sessão expirada, faça login novamente", "err");
+
+  // Detecta JSON localmente sem chamar a API
+  try {
+    JSON.parse(codigo);
+    document.getElementById("linguagem").value = "JSON";
+    return setStatus("✓ Linguagem detectada: JSON", "ok");
+  } catch {}
+
+  btnDetectar.disabled = true;
+  btnDetectar.textContent = "Detectando...";
+  setStatus("Detectando linguagem...", "loading");
+
+  try {
+    const res = await fetch("/api/detectar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ codigo }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (!data.linguagem) return setStatus("⚠ Não foi possível detectar a linguagem", "err");
+
+    const select = document.getElementById("linguagem");
+    const option = [...select.options].find(o => o.value === data.linguagem);
+    if (option) {
+      select.value = data.linguagem;
+      setStatus(`✓ Linguagem detectada: ${data.linguagem}`, "ok");
+    } else {
+      setStatus(`⚠ Linguagem detectada (${data.linguagem}) não está na lista`, "err");
+    }
+  } catch (err) {
+    setStatus("✗ " + err.message, "err");
+  } finally {
+    btnDetectar.disabled = false;
+    btnDetectar.textContent = "⚡ Detectar";
+  }
+}
 
 async function traduzir() {
   const codigo = inputCodigo.value.trim();

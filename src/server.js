@@ -28,30 +28,38 @@ const supabase = (SUPABASE_URL && SUPABASE_SVC_KEY)
   : null;
 
 const SYSTEM_PROMPT = `Você é um tradutor especializado em código de programação.
-Quebre o código recebido em partes lógicas e traduza cada parte para português simples,
-como se explicasse para alguém que nunca programou.
+Agrupe o código em blocos lógicos e significativos — cada bloco deve representar uma ideia completa, não uma linha ou campo isolado.
+
+Exemplos de agrupamento por linguagem:
+- SQL: cláusulas principais (SELECT+colunas, FROM+JOINs, WHERE, ORDER BY/LIMIT)
+- Python/JS/TS: funções completas, classes, blocos de lógica relacionada
+- HTML/CSS: seções de layout, componentes
+- Shell: comandos relacionados ao mesmo objetivo
+- Qualquer linguagem: imports juntos, declarações juntas, lógica de negócio junta
 
 Retorne SOMENTE um JSON válido, sem markdown, sem blocos de código, apenas o JSON puro:
 {
   "parts": [
-    { "id": 1, "code": "trecho do código", "translation": "tradução em português natural" },
-    { "id": 2, "code": "próximo trecho", "translation": "tradução em português natural" }
+    { "id": 1, "code": "bloco de código completo", "translation": "tradução em português natural" },
+    { "id": 2, "code": "próximo bloco", "translation": "tradução em português natural" }
   ]
 }
 
 Regras:
 - Cada "code" deve ser copiado exatamente como está no código original
+- Mínimo de 3 linhas por bloco sempre que possível — nunca separe campos ou linhas individuais
+- Entre 3 e 10 partes no total, independente do tamanho do código
 - Traduza de forma simples e cotidiana, sem jargão técnico
 - Retorne apenas o JSON, sem nenhum texto antes ou depois`;
 
 const ERROR_PROMPT = `Você é um especialista em interpretar mensagens de erro de sistemas e APIs.
-Analise a mensagem de erro recebida e explique em português simples:
-1. O que deu errado (o problema principal)
-2. Onde aconteceu (se identificável)
-3. O que provavelmente causou o erro
-4. O que pode ser feito para resolver
+Analise o JSON de erro recebido e explique em português simples, agrupando as informações por tema.
 
-Divida a explicação em partes lógicas baseadas no conteúdo do erro.
+Agrupe assim:
+1. O problema principal (mensagem de erro + código de status)
+2. Detalhes do contexto (qual sistema, operação, versão)
+3. Onde aconteceu (stack trace resumido — não liste cada linha, resuma)
+4. O que provavelmente causou e como resolver
 
 Retorne SOMENTE um JSON válido, sem markdown, sem blocos de código, apenas o JSON puro:
 {
@@ -62,9 +70,9 @@ Retorne SOMENTE um JSON válido, sem markdown, sem blocos de código, apenas o J
 }
 
 Regras:
-- Em "code" coloque o trecho do erro original que você está explicando
+- Máximo de 5 partes — agrupe campos relacionados em um único bloco
+- Em "code" coloque os campos do JSON original agrupados (não um campo por vez)
 - Em "translation" explique de forma clara, como se falasse com alguém leigo
-- Foque no que importa: o que é, por que aconteceu, como resolver
 - Retorne apenas o JSON, sem nenhum texto antes ou depois`;
 
 // ── Middleware: verifica JWT do Supabase ──────────────────────────────────────
@@ -186,6 +194,55 @@ app.get("/api/uso", requireAuth, async (req, res) => {
     .eq("date", today)
     .single();
   res.json({ count: data?.count || 0 });
+});
+
+app.post("/api/detectar", requireAuth, async (req, res) => {
+  const { codigo } = req.body;
+  if (!codigo) return res.status(400).json({ error: "Campo obrigatório: codigo" });
+
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return res.status(500).json({ error: "Chave OpenAI não configurada no servidor." });
+
+  try {
+    const openai = new OpenAI({ apiKey: key });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `Você é um detector de linguagens de programação. Analise o código e retorne a linguagem correta.
+
+Regras de prioridade (siga nesta ordem):
+1. Se a estrutura raiz do conteúdo é um objeto JSON ({ }) ou array JSON ([ ]), retorne "JSON" — mesmo que strings internas contenham código de outras linguagens ou stack traces.
+2. Se contém tags HTML (<html>, <div>, <p>, etc.) junto com CSS, retorne "HTML / CSS".
+3. Se começa com SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, retorne "SQL".
+4. Se usa indentação obrigatória, def/class sem chaves, import sem ponto e vírgula, retorne "Python".
+5. TypeScript só deve ser retornado se o código contém tipos explícitos (: string, : number, interface, type X =, as X, <>).
+6. Se parece JavaScript mas sem tipos explícitos, retorne "JavaScript".
+7. Para Shell/Bash: linhas começando com $, #!, comandos como apt/yum/grep/awk.
+8. Para Java: public class, System.out, @Override, void main.
+9. Para C#: using System, Console.WriteLine, namespace, .cs patterns.
+10. Para Go: package main, func , import (, :=.
+11. Para Kotlin: fun , val , var , data class.
+12. Para Swift: import UIKit, var , let , func  com -> tipo.
+13. Para Rust: fn main(), let mut, use std::, ownership patterns.
+14. Para Ruby: def/end, puts, require, símbolos com :.
+15. Para PHP: <?php, echo, $variavel.
+16. Para C/C++: #include, int main(), printf, ponteiros com *.
+
+Retorne SOMENTE: { "linguagem": "valor exato" }
+Valores aceitos: SQL, Python, JavaScript, TypeScript, Java, C#, C / C++, PHP, Ruby, Go, Shell / Bash, HTML / CSS, Kotlin, Swift, Rust, JSON
+Se não reconhecer nenhuma, retorne: { "linguagem": null }`,
+        },
+        { role: "user", content: codigo },
+      ],
+    });
+    const { linguagem } = JSON.parse(completion.choices[0].message.content);
+    res.json({ linguagem });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Erro desconhecido" });
+  }
 });
 
 app.post("/api/traduzir", requireAuth, async (req, res) => {
