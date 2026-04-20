@@ -27,53 +27,29 @@ const supabase = (SUPABASE_URL && SUPABASE_SVC_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SVC_KEY)
   : null;
 
-const SYSTEM_PROMPT = `Você é um tradutor especializado em código de programação.
-Agrupe o código em blocos lógicos e significativos — cada bloco deve representar uma ideia completa, não uma linha ou campo isolado.
+const EXPLAIN_PROMPT = `Você receberá blocos de código numerados. Para cada bloco, faça uma TRADUÇÃO LITERAL para o português — como se estivesse traduzindo de um idioma para outro, palavra por palavra ou expressão por expressão, em linguagem do dia a dia.
 
-Exemplos de agrupamento por linguagem:
-- SQL: cláusulas principais (SELECT+colunas, FROM+JOINs, WHERE, ORDER BY/LIMIT)
-- Python/JS/TS: funções completas, classes, blocos de lógica relacionada
-- HTML/CSS: seções de layout, componentes
-- Shell: comandos relacionados ao mesmo objetivo
-- Qualquer linguagem: imports juntos, declarações juntas, lógica de negócio junta
-
-Retorne SOMENTE um JSON válido, sem markdown, sem blocos de código, apenas o JSON puro:
-{
-  "parts": [
-    { "id": 1, "code": "bloco de código completo", "translation": "tradução em português natural" },
-    { "id": 2, "code": "próximo bloco", "translation": "tradução em português natural" }
-  ]
-}
+Exemplos do estilo esperado:
+- "SELECT * FROM Produto WHERE codigo = 2" → "Me dê todas as colunas da tabela Produto onde o código for 2"
+- "if (idade >= 18)" → "Se a idade for maior ou igual a 18"
+- "def calcularDesconto(preco, percentual):" → "Crie uma função chamada calcularDesconto que recebe o preço e o percentual"
+- "return preco * (1 - percentual / 100)" → "Retorne o preço multiplicado por 1 menos o percentual dividido por 100"
+- "import mysql.connector" → "Importe a biblioteca mysql.connector"
+- "for item in lista:" → "Para cada item na lista, faça:"
+- "connection.close()" → "Feche a conexão"
 
 Regras:
-- Cada "code" deve ser copiado exatamente como está no código original
-- Mínimo de 3 linhas por bloco sempre que possível — nunca separe campos ou linhas individuais
-- Entre 3 e 10 partes no total, independente do tamanho do código
-- Traduza de forma simples e cotidiana, sem jargão técnico
-- Retorne apenas o JSON, sem nenhum texto antes ou depois`;
+- Traduza o que está escrito, não interprete ou explique o propósito
+- Use linguagem natural e cotidiana
+- Não copie código na resposta
 
-const ERROR_PROMPT = `Você é um especialista em interpretar mensagens de erro de sistemas e APIs.
-Analise o JSON de erro recebido e explique em português simples, agrupando as informações por tema.
+Retorne SOMENTE este JSON:
+{ "explicacoes": ["tradução do bloco 1", "tradução do bloco 2", ...] }`;
 
-Agrupe assim:
-1. O problema principal (mensagem de erro + código de status)
-2. Detalhes do contexto (qual sistema, operação, versão)
-3. Onde aconteceu (stack trace resumido — não liste cada linha, resuma)
-4. O que provavelmente causou e como resolver
+const EXPLAIN_JSON_PROMPT = `Você receberá um JSON de erro de sistema. Traduza cada parte importante para português simples — o que deu errado, onde aconteceu, e o que fazer. Máximo 5 frases, uma por grupo de informação. Não copie o JSON na resposta.
 
-Retorne SOMENTE um JSON válido, sem markdown, sem blocos de código, apenas o JSON puro:
-{
-  "parts": [
-    { "id": 1, "code": "trecho relevante do erro", "translation": "explicação em português simples" },
-    { "id": 2, "code": "próximo trecho relevante", "translation": "explicação em português simples" }
-  ]
-}
-
-Regras:
-- Máximo de 5 partes — agrupe campos relacionados em um único bloco
-- Em "code" coloque os campos do JSON original agrupados (não um campo por vez)
-- Em "translation" explique de forma clara, como se falasse com alguém leigo
-- Retorne apenas o JSON, sem nenhum texto antes ou depois`;
+Retorne SOMENTE este JSON:
+{ "explicacoes": ["tradução 1", "tradução 2", ...] }`;
 
 // ── Middleware: verifica JWT do Supabase ──────────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -245,6 +221,49 @@ Se não reconhecer nenhuma, retorne: { "linguagem": null }`,
   }
 });
 
+function splitBlocks(code, linguagem) {
+  const lines = code.split('\n');
+  const blocks = [];
+  let current = [];
+
+  const isBlockStart = (line) => {
+    const t = line.trim();
+    if (linguagem === 'Python')
+      return /^(def |class |async def )/.test(t);
+    if (linguagem === 'JavaScript' || linguagem === 'TypeScript')
+      return /^(function |class |const |let |var |async function |export )/.test(t);
+    if (linguagem === 'SQL')
+      return /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i.test(t);
+    // Para outras linguagens, divide por linhas em branco
+    return !t && current.length > 0;
+  };
+
+  for (const line of lines) {
+    if (isBlockStart(line)) {
+      if (current.join('').trim()) blocks.push(current.join('\n').trim());
+      current = line.trim() ? [line] : [];
+    } else {
+      current.push(line);
+    }
+  }
+  if (current.join('').trim()) blocks.push(current.join('\n').trim());
+
+  // Mescla blocos muito pequenos (< 2 linhas não-vazias) com o próximo
+  const merged = [];
+  let acc = '';
+  for (let i = 0; i < blocks.length; i++) {
+    acc = acc ? acc + '\n' + blocks[i] : blocks[i];
+    const nonEmpty = acc.split('\n').filter(l => l.trim()).length;
+    if (nonEmpty >= 2 || i === blocks.length - 1) {
+      merged.push(acc);
+      acc = '';
+    }
+  }
+  if (acc) merged.push(acc);
+
+  return merged.length ? merged : [code];
+}
+
 app.post("/api/traduzir", requireAuth, async (req, res) => {
   const { codigo, linguagem } = req.body;
 
@@ -259,12 +278,13 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
 
   try {
     const openai = new OpenAI({ apiKey: key });
-
     const isJson = linguagem === "JSON";
-    const prompt = isJson ? ERROR_PROMPT : SYSTEM_PROMPT;
+
+    const blocks = isJson ? [codigo] : splitBlocks(codigo, linguagem);
+    const prompt = isJson ? EXPLAIN_JSON_PROMPT : EXPLAIN_PROMPT;
     const userContent = isJson
-      ? `Conteúdo JSON:\n${codigo}`
-      : `Linguagem: ${linguagem}\n\nCódigo:\n${codigo}`;
+      ? `JSON:\n${codigo}`
+      : blocks.map((b, i) => `Bloco ${i + 1}:\n${b}`).join('\n\n---\n\n');
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -284,9 +304,15 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
       return res.status(500).json({ error: "O modelo retornou um JSON inválido. Tente novamente." });
     }
 
-    if (!parsed.parts || !Array.isArray(parsed.parts)) {
+    if (!parsed.explicacoes || !Array.isArray(parsed.explicacoes)) {
       return res.status(500).json({ error: "Resposta inesperada do modelo. Tente novamente." });
     }
+
+    const parts = blocks.map((trecho, i) => ({
+      id: i + 1,
+      trecho,
+      explicacao: parsed.explicacoes[i] || '',
+    }));
 
     // Registra uso diário e retorna contagem atualizada
     let usageCount = null;
@@ -302,7 +328,7 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
       usageCount = usage?.count ?? null;
     }
 
-    res.json({ parts: parsed.parts, usageCount });
+    res.json({ parts, usageCount });
   } catch (err) {
     let msg = err.message || "Erro desconhecido";
     if (err.status === 401) msg = "Chave OpenAI inválida no servidor.";

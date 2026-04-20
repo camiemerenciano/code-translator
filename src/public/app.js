@@ -123,7 +123,7 @@ function renderResultado(codigoOriginal, parts) {
   let html = esc(codigoOriginal);
   parts.forEach((part, i) => {
     const cor = COLORS[i % COLORS.length];
-    const escaped = esc(part.code);
+    const escaped = esc(part.trecho);
     html = html.replace(
       escaped,
       `<mark class="cm" style="background:${cor.bg};color:${cor.text};outline:1px solid ${cor.border}33">${escaped}</mark>`
@@ -139,11 +139,11 @@ function renderResultado(codigoOriginal, parts) {
     return `
       <div class="translation-part">
         <div class="part-code" style="background:${cor.bg};color:${cor.text}">
-          ${esc(part.code)}
+          ${esc(part.trecho)}
         </div>
         <div class="part-translation" style="border-left:3px solid ${cor.border}">
           <span class="part-arrow" style="color:${cor.border}">→</span>
-          ${esc(part.translation)}
+          ${esc(part.explicacao)}
         </div>
       </div>`;
   }).join("");
@@ -170,7 +170,8 @@ function limpar() {
 function copiar() {
   const partes = [...outputEl.querySelectorAll(".part-translation")]
     .map((el) => el.textContent.replace("→", "").trim())
-    .join(" ");
+    .filter(Boolean)
+    .join("\n\n");
   if (!partes) return setStatus("Nada para copiar", "err");
   navigator.clipboard.writeText(partes).then(() => setStatus("✓ Copiado!", "ok"));
 }
