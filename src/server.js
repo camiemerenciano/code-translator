@@ -27,24 +27,29 @@ const supabase = (SUPABASE_URL && SUPABASE_SVC_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SVC_KEY)
   : null;
 
-const EXPLAIN_PROMPT = `Você receberá blocos de código numerados. Para cada bloco, faça uma TRADUÇÃO LITERAL para o português — como se estivesse traduzindo de um idioma para outro, palavra por palavra ou expressão por expressão, em linguagem do dia a dia.
+const EXPLAIN_PROMPT = `Você receberá blocos de código numerados. Para cada bloco, faça uma TRADUÇÃO LITERAL e DETALHADA para o português — como se estivesse traduzindo de um idioma para outro, parte por parte, em linguagem do dia a dia. Explique cada linha ou instrução do bloco.
 
 Exemplos do estilo esperado:
-- "SELECT * FROM Produto WHERE codigo = 2" → "Me dê todas as colunas da tabela Produto onde o código for 2"
-- "if (idade >= 18)" → "Se a idade for maior ou igual a 18"
-- "def calcularDesconto(preco, percentual):" → "Crie uma função chamada calcularDesconto que recebe o preço e o percentual"
-- "return preco * (1 - percentual / 100)" → "Retorne o preço multiplicado por 1 menos o percentual dividido por 100"
-- "import mysql.connector" → "Importe a biblioteca mysql.connector"
-- "for item in lista:" → "Para cada item na lista, faça:"
-- "connection.close()" → "Feche a conexão"
+
+Bloco: "lista = []\ncontador = 0"
+→ "Crie uma lista vazia chamada 'lista'. Crie uma variável chamada 'contador' com valor 0."
+
+Bloco: "while contador < 5:\n    numero = int(input('Digite um número: '))\n    lista.append(numero)\n    contador += 1"
+→ "Enquanto o contador for menor que 5, repita: peça ao usuário que digite um número, converta para inteiro e guarde em 'numero'. Adicione esse número à lista. Some 1 ao contador."
+
+Bloco: "print('Os números são:', lista)"
+→ "Mostre na tela a mensagem 'Os números são:' seguida do conteúdo da lista."
+
+Bloco: "def calcularDesconto(preco, percentual):\n    return preco * (1 - percentual / 100)"
+→ "Crie uma função chamada 'calcularDesconto' que recebe o preço e o percentual. Ela retorna o preço multiplicado por 1 menos o percentual dividido por 100."
 
 Regras:
-- Traduza o que está escrito, não interprete ou explique o propósito
-- Use linguagem natural e cotidiana
+- Explique cada linha ou instrução separadamente dentro da resposta
+- Use linguagem natural, cotidiana, sem termos técnicos
 - Não copie código na resposta
 
 Retorne SOMENTE este JSON:
-{ "explicacoes": ["tradução do bloco 1", "tradução do bloco 2", ...] }`;
+{ "explicacoes": ["tradução detalhada do bloco 1", "tradução detalhada do bloco 2", ...] }`;
 
 const EXPLAIN_JSON_PROMPT = `Você receberá um JSON de erro de sistema. Traduza cada parte importante para português simples — o que deu errado, onde aconteceu, e o que fazer. Máximo 5 frases, uma por grupo de informação. Não copie o JSON na resposta.
 
@@ -228,10 +233,14 @@ function splitBlocks(code, linguagem) {
 
   const isBlockStart = (line) => {
     const t = line.trim();
-    if (linguagem === 'Python')
-      return /^(def |class |async def )/.test(t);
+    const indent = line.match(/^(\s*)/)[1].length;
+    if (linguagem === 'Python') {
+      // Divide em blocos de nível raiz (sem indentação)
+      if (indent > 0) return false;
+      return /^(def |class |async def |if |elif |else:|for |while |try:|except|with |import |from |print\(|[a-zA-Z_]\w*\s*=)/.test(t);
+    }
     if (linguagem === 'JavaScript' || linguagem === 'TypeScript')
-      return /^(function |class |const |let |var |async function |export )/.test(t);
+      return /^(function |class |const |let |var |async function |export |if |for |while )/.test(t);
     if (linguagem === 'SQL')
       return /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i.test(t);
     // Para outras linguagens, divide por linhas em branco
