@@ -2,10 +2,50 @@ require("dotenv").config();
 const express = require("express");
 const { OpenAI } = require("openai");
 const { createClient } = require("@supabase/supabase-js");
+const Stripe = require("stripe");
 const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Webhook Stripe precisa do body RAW — deve vir ANTES do express.json()
+app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) return res.status(500).send("Webhook secret não configurado.");
+
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    console.error("Webhook inválido:", err.message);
+    return res.status(400).send(`Webhook error: ${err.message}`);
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const email = session.customer_details?.email || session.customer_email;
+
+    if (email && supabase) {
+      // Busca o usuário pelo e-mail e marca como pago nos metadados
+      const { data: { users } } = await supabase.auth.admin.listUsers();
+      const user = users?.find(u => u.email === email);
+
+      if (user) {
+        await supabase.auth.admin.updateUserById(user.id, {
+          user_metadata: { ...user.user_metadata, paid: true, paid_at: new Date().toISOString() },
+        });
+        console.log(`✅ Acesso liberado para: ${email}`);
+      } else {
+        console.warn(`⚠ Pagamento recebido mas usuário não encontrado: ${email}`);
+      }
+    }
+  }
+
+  res.json({ received: true });
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -14,6 +54,7 @@ app.get("/login",       (req, res) => res.sendFile(path.join(__dirname, "public/
 app.get("/cadastro",   (req, res) => res.sendFile(path.join(__dirname, "public/cadastro.html")));
 app.get("/oferta",     (req, res) => res.sendFile(path.join(__dirname, "public/oferta.html")));
 app.get("/reset-senha",(req, res) => res.sendFile(path.join(__dirname, "public/reset-senha.html")));
+app.get("/sucesso",    (req, res) => res.sendFile(path.join(__dirname, "public/sucesso.html")));
 
 // Supabase admin client (backend only — usa a service role key)
 const SUPABASE_URL      = process.env.SUPABASE_URL;
@@ -343,6 +384,35 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
     if (err.status === 401) msg = "Chave OpenAI inválida no servidor.";
     else if (err.status === 429) msg = "Limite de requisições atingido. Aguarde e tente novamente.";
     res.status(500).json({ error: msg });
+  }
+});
+
+app.post("/api/create-checkout-session", async (req, res) => {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return res.status(500).json({ error: "Stripe não configurado no servidor." });
+
+  try {
+    const stripe = new Stripe(key);
+    const baseUrl = process.env.APP_URL || "http://localhost:3000";
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [{
+        price_data: {
+          currency: "brl",
+          product_data: { name: "Nunca Mais Trave em Código" },
+          unit_amount: 1000,
+        },
+        quantity: 1,
+      }],
+      mode: "payment",
+      success_url: `${baseUrl}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${baseUrl}/oferta`,
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Erro ao criar sessão de pagamento." });
   }
 });
 

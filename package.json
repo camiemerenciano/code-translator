@@ -14,7 +14,8 @@
     "@supabase/supabase-js": "^2.103.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "openai": "^6.34.0"
+    "openai": "^6.34.0",
+    "stripe": "^22.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

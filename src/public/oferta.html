@@ -324,32 +324,7 @@
     </ul>
   </div>
 
-  <div class="card">
-    <div class="card-title">como garantir seu acesso</div>
-    <div class="pix-step">
-      <div class="step-num">1</div>
-      <div class="step-text">Crie sua conta gratuitamente em <strong>code-translator-production.up.railway.app</strong></div>
-    </div>
-    <div class="pix-step">
-      <div class="step-num">2</div>
-      <div class="step-text">Faça o Pix de <strong>R$10</strong> para a chave abaixo (CNPJ)</div>
-    </div>
-    <div class="pix-key">
-      <span>48.872.622/0001-36</span>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText('48.872.622/0001-36');this.textContent='Copiado!';setTimeout(()=>this.textContent='Copiar',2000)">Copiar</button>
-    </div>
-    <div class="pix-step">
-      <div class="step-num">3</div>
-      <div class="step-text">Preencha o formulário com seu nome, email usado no cadastro e comprovante do Pix</div>
-    </div>
-    <div class="pix-step">
-      <div class="step-num">4</div>
-      <div class="step-text">Aguarde até <strong>24h</strong> — você recebe a confirmação e o link da comunidade no WhatsApp</div>
-    </div>
-  </div>
-
-  <a href="https://forms.gle/oKiHLzF4mvUTUbip9" class="cta-primary">Preencher formulário após o Pix</a>
-  <a href="https://code-translator-production.up.railway.app" class="cta-secondary">Conhecer a ferramenta antes</a>
+  <button id="btnComprar" class="cta-primary">Garantir acesso por R$10</button>
 
   <div class="guarantee">
     <strong>Garantia de 7 dias</strong><br>
@@ -358,5 +333,25 @@
 
 </div>
 </div>
+<script>
+  document.getElementById("btnComprar").addEventListener("click", async () => {
+    const btn = document.getElementById("btnComprar");
+    btn.textContent = "Aguarde...";
+    btn.disabled = true;
+    try {
+      const res = await fetch("/api/create-checkout-session", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || "Erro ao iniciar pagamento.");
+      }
+    } catch (err) {
+      alert("Erro: " + err.message);
+      btn.textContent = "Garantir acesso por R$10";
+      btn.disabled = false;
+    }
+  });
+</script>
 </body>
 </html>
