@@ -324,7 +324,32 @@
     </ul>
   </div>
 
-  <button id="btnComprar" class="cta-primary">Garantir acesso por R$10</button>
+  <div class="card">
+    <div class="card-title">prefere pagar via pix?</div>
+    <div class="pix-step">
+      <div class="step-num">1</div>
+      <div class="step-text">Crie sua conta em <strong>code-translator-production.up.railway.app</strong></div>
+    </div>
+    <div class="pix-step">
+      <div class="step-num">2</div>
+      <div class="step-text">Faça o Pix de <strong>R$10</strong> para a chave abaixo (CNPJ)</div>
+    </div>
+    <div class="pix-key">
+      <span>48.872.622/0001-36</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('48.872.622/0001-36');this.textContent='Copiado!';setTimeout(()=>this.textContent='Copiar',2000)">Copiar</button>
+    </div>
+    <div class="pix-step">
+      <div class="step-num">3</div>
+      <div class="step-text">Preencha o formulário com seu nome, e-mail e comprovante</div>
+    </div>
+    <div class="pix-step">
+      <div class="step-num">4</div>
+      <div class="step-text">Aguarde até <strong>24h</strong> — você recebe a confirmação e o link da comunidade</div>
+    </div>
+    <a href="https://forms.gle/oKiHLzF4mvUTUbip9" class="cta-primary" style="margin-top:1rem;display:block;text-decoration:none;">Preencher formulário após o Pix</a>
+  </div>
+
+  <button id="btnComprar" class="cta-primary" style="margin-top: 1.25rem;">Garantir acesso por R$10 — Cartão</button>
 
   <div class="guarantee">
     <strong>Garantia de 7 dias</strong><br>
