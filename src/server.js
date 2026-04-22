@@ -275,38 +275,66 @@ function splitBlocks(code, linguagem) {
   const isBlockStart = (line) => {
     const t = line.trim();
     const indent = line.match(/^(\s*)/)[1].length;
+    if (!t) return false;
+
     if (linguagem === 'Python') {
-      // Divide em blocos de nível raiz (sem indentação)
       if (indent > 0) return false;
       return /^(def |class |async def |if |elif |else:|for |while |try:|except|with |import |from |print\(|[a-zA-Z_]\w*\s*=)/.test(t);
     }
     if (linguagem === 'JavaScript' || linguagem === 'TypeScript')
-      return /^(function |class |const |let |var |async function |export |if |for |while )/.test(t);
+      return indent === 0 && /^(function |class |const |let |var |async function |export |if |for |while )/.test(t);
     if (linguagem === 'SQL')
       return /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i.test(t);
-    // Para outras linguagens, divide por linhas em branco
-    return !t && current.length > 0;
+    if (linguagem === 'Java' || linguagem === 'C#') {
+      // Divide em imports/package (nível 0) e em cada método (qualquer indentação)
+      if (indent === 0) return /^(package |import |public |private |protected |class |interface |enum |@)/.test(t);
+      return /^(public|private|protected|static|void|int|String|boolean|double|float)\b.+\(.*\)\s*\{?$/.test(t);
+    }
+    if (linguagem === 'C / C++')
+      return indent === 0 && /^(#include|#define|int |void |char |float |double |struct |class |namespace )/.test(t);
+    if (linguagem === 'Go')
+      return indent === 0 && /^(package |import |func |type |var |const )/.test(t);
+    if (linguagem === 'Kotlin')
+      return /^(fun |class |object |val |var |import |package )/.test(t) && indent === 0;
+    if (linguagem === 'Swift')
+      return /^(func |class |struct |import |let |var )/.test(t) && indent === 0;
+    if (linguagem === 'Rust')
+      return /^(fn |pub fn |struct |impl |use |mod |let )/.test(t) && indent === 0;
+    if (linguagem === 'Ruby')
+      return indent === 0 && /^(def |class |module |require |attr_)/.test(t);
+    if (linguagem === 'PHP')
+      return indent === 0 && /^(<\?php|function |class |namespace |use |public |private |protected )/.test(t);
+    if (linguagem === 'Shell / Bash')
+      return indent === 0 && /^(function |if |for |while |case |#|[a-z_]+=)/.test(t);
+    return false;
   };
 
   for (const line of lines) {
     if (isBlockStart(line)) {
       if (current.join('').trim()) blocks.push(current.join('\n').trim());
-      current = line.trim() ? [line] : [];
+      current = [line];
     } else {
       current.push(line);
     }
   }
   if (current.join('').trim()) blocks.push(current.join('\n').trim());
 
-  // Mescla blocos muito pequenos (< 2 linhas não-vazias) com o próximo
+  // Agrupa apenas blocos completamente vazios; mantém blocos de 1 linha separados
   const merged = [];
   let acc = '';
   for (let i = 0; i < blocks.length; i++) {
-    acc = acc ? acc + '\n' + blocks[i] : blocks[i];
-    const nonEmpty = acc.split('\n').filter(l => l.trim()).length;
-    if (nonEmpty >= 2 || i === blocks.length - 1) {
+    const b = blocks[i];
+    if (!acc) { acc = b; continue; }
+    // Só agrupa imports/packages consecutivos (blocos de 1 linha do mesmo tipo)
+    const accLines = acc.split('\n').filter(l => l.trim()).length;
+    const bLines   = b.split('\n').filter(l => l.trim()).length;
+    const bothSmall = accLines === 1 && bLines === 1;
+    const bothImports = /^(import |package |#include|use )/.test(acc.trim()) && /^(import |package |#include|use )/.test(b.trim());
+    if (bothSmall && bothImports) {
+      acc = acc + '\n' + b;
+    } else {
       merged.push(acc);
-      acc = '';
+      acc = b;
     }
   }
   if (acc) merged.push(acc);
