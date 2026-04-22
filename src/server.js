@@ -277,35 +277,81 @@ function splitBlocks(code, linguagem) {
     const indent = line.match(/^(\s*)/)[1].length;
     if (!t) return false;
 
+    // Princípio geral: divide em declarações de nível raiz E em funções/métodos em qualquer nível
+
     if (linguagem === 'Python') {
-      if (indent > 0) return false;
-      return /^(def |class |async def |if |elif |else:|for |while |try:|except|with |import |from |print\(|[a-zA-Z_]\w*\s*=)/.test(t);
+      // Python: blocos de nível raiz + funções/classes aninhadas
+      if (indent === 0) return /^(def |class |async def |if |elif |else:|for |while |try:|except|with |import |from |[a-zA-Z_]\w*\s*=)/.test(t);
+      // Métodos dentro de classes (indent 4 ou 8)
+      return /^(def |async def )/.test(t);
     }
-    if (linguagem === 'JavaScript' || linguagem === 'TypeScript')
-      return indent === 0 && /^(function |class |const |let |var |async function |export |if |for |while )/.test(t);
+
+    if (linguagem === 'JavaScript' || linguagem === 'TypeScript') {
+      // Nível raiz: declarações principais
+      if (indent === 0) return /^(function |class |const |let |var |async function |export |import )/.test(t);
+      // Métodos dentro de classes (qualquer indentação)
+      return /^(async\s+)?[a-zA-Z_$][\w$]*\s*\(.*\)\s*\{?\s*$/.test(t) ||
+             /^(public|private|protected|static|async|get|set)\s/.test(t);
+    }
+
     if (linguagem === 'SQL')
       return /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i.test(t);
-    if (linguagem === 'Java' || linguagem === 'C#') {
-      // Divide em imports/package (nível 0) e em cada método (qualquer indentação)
+
+    if (linguagem === 'Java') {
       if (indent === 0) return /^(package |import |public |private |protected |class |interface |enum |@)/.test(t);
-      return /^(public|private|protected|static|void|int|String|boolean|double|float)\b.+\(.*\)\s*\{?$/.test(t);
+      // Métodos dentro de classes
+      return /^(public|private|protected|static|void|@Override)\b.*\(.*\)\s*(\{|throws)/.test(t);
     }
-    if (linguagem === 'C / C++')
-      return indent === 0 && /^(#include|#define|int |void |char |float |double |struct |class |namespace )/.test(t);
-    if (linguagem === 'Go')
-      return indent === 0 && /^(package |import |func |type |var |const )/.test(t);
-    if (linguagem === 'Kotlin')
-      return /^(fun |class |object |val |var |import |package )/.test(t) && indent === 0;
-    if (linguagem === 'Swift')
-      return /^(func |class |struct |import |let |var )/.test(t) && indent === 0;
-    if (linguagem === 'Rust')
-      return /^(fn |pub fn |struct |impl |use |mod |let )/.test(t) && indent === 0;
-    if (linguagem === 'Ruby')
-      return indent === 0 && /^(def |class |module |require |attr_)/.test(t);
-    if (linguagem === 'PHP')
-      return indent === 0 && /^(<\?php|function |class |namespace |use |public |private |protected )/.test(t);
-    if (linguagem === 'Shell / Bash')
-      return indent === 0 && /^(function |if |for |while |case |#|[a-z_]+=)/.test(t);
+
+    if (linguagem === 'C#') {
+      if (indent === 0) return /^(using |namespace |public |private |protected |class |interface |enum |record )/.test(t);
+      // Métodos e propriedades dentro de classes
+      return /^(public|private|protected|internal|static|override|virtual|async)\b.*(\(.*\)|\{)\s*$/.test(t);
+    }
+
+    if (linguagem === 'C / C++') {
+      if (indent === 0) return /^(#include|#define|#pragma|int |void |char |float |double |bool |struct |class |namespace |template )/.test(t);
+      // Funções dentro de classes/namespaces
+      return /^(public:|private:|protected:|void |int |bool |double |float |char |auto |static )\S/.test(t);
+    }
+
+    if (linguagem === 'Go') {
+      if (indent === 0) return /^(package |import |func |type |var |const )/.test(t);
+      // Métodos de structs
+      return /^func /.test(t);
+    }
+
+    if (linguagem === 'Kotlin') {
+      if (indent === 0) return /^(package |import |fun |class |object |interface |val |var |data class |sealed )/.test(t);
+      return /^(fun |override fun |private fun |public fun |suspend fun )/.test(t);
+    }
+
+    if (linguagem === 'Swift') {
+      if (indent === 0) return /^(import |func |class |struct |enum |protocol |extension |let |var )/.test(t);
+      return /^(func |override func |private func |public func |@objc func )/.test(t);
+    }
+
+    if (linguagem === 'Rust') {
+      if (indent === 0) return /^(use |mod |fn |pub fn |pub struct |struct |impl |trait |pub trait |type |const |static )/.test(t);
+      return /^(pub fn |fn |pub async fn |async fn )/.test(t);
+    }
+
+    if (linguagem === 'Ruby') {
+      if (indent === 0) return /^(require|require_relative|include|extend|class |module |def |attr_|[A-Z]\w* ?=)/.test(t);
+      return /^(def |private|protected|public)/.test(t);
+    }
+
+    if (linguagem === 'PHP') {
+      if (indent === 0) return /^(<\?php|namespace |use |class |interface |trait |function |abstract )/.test(t);
+      return /^(public|private|protected|static|abstract|final)\s+(function|static)\s/.test(t) ||
+             /^function /.test(t);
+    }
+
+    if (linguagem === 'Shell / Bash') {
+      if (indent === 0) return /^(function |if |for |while |case |until |[a-zA-Z_]\w*\(\))/.test(t);
+      return /^(if |for |while |case )/.test(t);
+    }
+
     return false;
   };
 
