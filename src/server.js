@@ -268,124 +268,38 @@ Se não reconhecer nenhuma, retorne: { "linguagem": null }`,
 });
 
 function splitBlocks(code, linguagem) {
-  const lines = code.split('\n');
-  const blocks = [];
-  let current = [];
+  if (linguagem === 'JSON') return [code];
 
-  const isBlockStart = (line) => {
-    const t = line.trim();
-    const indent = line.match(/^(\s*)/)[1].length;
-    if (!t) return false;
-
-    // Princípio geral: divide em declarações de nível raiz E em funções/métodos em qualquer nível
-
-    if (linguagem === 'Python') {
-      // Python: blocos de nível raiz + funções/classes aninhadas
-      if (indent === 0) return /^(def |class |async def |if |elif |else:|for |while |try:|except|with |import |from |[a-zA-Z_]\w*\s*=)/.test(t);
-      // Métodos dentro de classes (indent 4 ou 8)
-      return /^(def |async def )/.test(t);
+  // SQL: agrupa por cláusula (SELECT, FROM, WHERE etc. ficam juntos com suas colunas)
+  if (linguagem === 'SQL') {
+    const lines = code.split('\n');
+    const blocks = [];
+    let current = [];
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t) continue;
+      if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|FROM|WHERE|INNER JOIN|LEFT JOIN|RIGHT JOIN|JOIN|GROUP BY|ORDER BY|HAVING|SET|VALUES|LIMIT)\b/i.test(t) && current.length > 0) {
+        blocks.push(current.join('\n').trim());
+        current = [line];
+      } else {
+        current.push(line);
+      }
     }
-
-    if (linguagem === 'JavaScript' || linguagem === 'TypeScript') {
-      // Nível raiz: declarações principais
-      if (indent === 0) return /^(function |class |const |let |var |async function |export |import )/.test(t);
-      // Métodos dentro de classes (qualquer indentação)
-      return /^(async\s+)?[a-zA-Z_$][\w$]*\s*\(.*\)\s*\{?\s*$/.test(t) ||
-             /^(public|private|protected|static|async|get|set)\s/.test(t);
-    }
-
-    if (linguagem === 'SQL')
-      return /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i.test(t);
-
-    if (linguagem === 'Java') {
-      if (indent === 0) return /^(package |import |public |private |protected |class |interface |enum |@)/.test(t);
-      // Métodos dentro de classes
-      return /^(public|private|protected|static|void|@Override)\b.*\(.*\)\s*(\{|throws)/.test(t);
-    }
-
-    if (linguagem === 'C#') {
-      if (indent === 0) return /^(using |namespace |public |private |protected |class |interface |enum |record )/.test(t);
-      // Métodos e propriedades dentro de classes
-      return /^(public|private|protected|internal|static|override|virtual|async)\b.*(\(.*\)|\{)\s*$/.test(t);
-    }
-
-    if (linguagem === 'C / C++') {
-      if (indent === 0) return /^(#include|#define|#pragma|int |void |char |float |double |bool |struct |class |namespace |template )/.test(t);
-      // Funções dentro de classes/namespaces
-      return /^(public:|private:|protected:|void |int |bool |double |float |char |auto |static )\S/.test(t);
-    }
-
-    if (linguagem === 'Go') {
-      if (indent === 0) return /^(package |import |func |type |var |const )/.test(t);
-      // Métodos de structs
-      return /^func /.test(t);
-    }
-
-    if (linguagem === 'Kotlin') {
-      if (indent === 0) return /^(package |import |fun |class |object |interface |val |var |data class |sealed )/.test(t);
-      return /^(fun |override fun |private fun |public fun |suspend fun )/.test(t);
-    }
-
-    if (linguagem === 'Swift') {
-      if (indent === 0) return /^(import |func |class |struct |enum |protocol |extension |let |var )/.test(t);
-      return /^(func |override func |private func |public func |@objc func )/.test(t);
-    }
-
-    if (linguagem === 'Rust') {
-      if (indent === 0) return /^(use |mod |fn |pub fn |pub struct |struct |impl |trait |pub trait |type |const |static )/.test(t);
-      return /^(pub fn |fn |pub async fn |async fn )/.test(t);
-    }
-
-    if (linguagem === 'Ruby') {
-      if (indent === 0) return /^(require|require_relative|include|extend|class |module |def |attr_|[A-Z]\w* ?=)/.test(t);
-      return /^(def |private|protected|public)/.test(t);
-    }
-
-    if (linguagem === 'PHP') {
-      if (indent === 0) return /^(<\?php|namespace |use |class |interface |trait |function |abstract )/.test(t);
-      return /^(public|private|protected|static|abstract|final)\s+(function|static)\s/.test(t) ||
-             /^function /.test(t);
-    }
-
-    if (linguagem === 'Shell / Bash') {
-      if (indent === 0) return /^(function |if |for |while |case |until |[a-zA-Z_]\w*\(\))/.test(t);
-      return /^(if |for |while |case )/.test(t);
-    }
-
-    return false;
-  };
-
-  for (const line of lines) {
-    if (isBlockStart(line)) {
-      if (current.join('').trim()) blocks.push(current.join('\n').trim());
-      current = [line];
-    } else {
-      current.push(line);
-    }
+    if (current.length) blocks.push(current.join('\n').trim());
+    return blocks.length ? blocks : [code];
   }
-  if (current.join('').trim()) blocks.push(current.join('\n').trim());
 
-  // Agrupa apenas blocos completamente vazios; mantém blocos de 1 linha separados
-  const merged = [];
-  let acc = '';
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (!acc) { acc = b; continue; }
-    // Só agrupa imports/packages consecutivos (blocos de 1 linha do mesmo tipo)
-    const accLines = acc.split('\n').filter(l => l.trim()).length;
-    const bLines   = b.split('\n').filter(l => l.trim()).length;
-    const bothSmall = accLines === 1 && bLines === 1;
-    const bothImports = /^(import |package |#include|use )/.test(acc.trim()) && /^(import |package |#include|use )/.test(b.trim());
-    if (bothSmall && bothImports) {
-      acc = acc + '\n' + b;
-    } else {
-      merged.push(acc);
-      acc = b;
-    }
-  }
-  if (acc) merged.push(acc);
+  // Todas as outras linguagens: linha por linha
+  // Ignora linhas que são apenas chaves/colchetes de fechamento (sem conteúdo semântico)
+  const blocks = code
+    .split('\n')
+    .map(l => l.trimEnd())
+    .filter(l => {
+      const t = l.trim();
+      return t && !/^[}\]){;]+$/.test(t);
+    });
 
-  return merged.length ? merged : [code];
+  return blocks.length ? blocks : [code];
 }
 
 app.post("/api/traduzir", requireAuth, async (req, res) => {
