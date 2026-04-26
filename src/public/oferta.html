@@ -349,7 +349,7 @@
     <a href="https://forms.gle/oKiHLzF4mvUTUbip9" class="cta-primary" style="margin-top:1rem;display:block;text-decoration:none;">Preencher formulário após o Pix</a>
   </div>
 
-  <button id="btnComprar" class="cta-primary" style="margin-top: 1.25rem;">Garantir acesso por R$10 — Cartão</button>
+  <a href="https://buy.stripe.com/7sY3co3epdRfgod9BG9MY00" target="_blank" rel="noopener noreferrer" class="cta-primary" style="margin-top: 1.25rem; display: block; text-decoration: none;">Garantir acesso por R$10 — Cartão</a>
 
   <div class="guarantee">
     <strong>Garantia de 7 dias</strong><br>
@@ -358,25 +358,5 @@
 
 </div>
 </div>
-<script>
-  document.getElementById("btnComprar").addEventListener("click", async () => {
-    const btn = document.getElementById("btnComprar");
-    btn.textContent = "Aguarde...";
-    btn.disabled = true;
-    try {
-      const res = await fetch("/api/create-checkout-session", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error(data.error || "Erro ao iniciar pagamento.");
-      }
-    } catch (err) {
-      alert("Erro: " + err.message);
-      btn.textContent = "Garantir acesso por R$10";
-      btn.disabled = false;
-    }
-  });
-</script>
 </body>
 </html>
