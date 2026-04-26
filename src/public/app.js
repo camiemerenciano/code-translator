@@ -123,7 +123,9 @@ function renderResultado(codigoOriginal, parts) {
   let html = esc(codigoOriginal);
   parts.forEach((part, i) => {
     const cor = COLORS[i % COLORS.length];
-    const escaped = esc(part.trecho);
+    const trecho = part.trecho || part.code || "";
+    const escaped = esc(trecho);
+    if (!escaped) return;
     html = html.replace(
       escaped,
       `<mark class="cm" style="background:${cor.bg};color:${cor.text};outline:1px solid ${cor.border}33">${escaped}</mark>`
@@ -136,14 +138,16 @@ function renderResultado(codigoOriginal, parts) {
 
   outputEl.innerHTML = parts.map((part, i) => {
     const cor = COLORS[i % COLORS.length];
+    const trecho    = part.trecho    || part.code        || "";
+    const explicacao = part.explicacao || part.translation || "";
     return `
       <div class="translation-part">
         <div class="part-code" style="background:${cor.bg};color:${cor.text}">
-          ${esc(part.trecho)}
+          ${esc(trecho)}
         </div>
         <div class="part-translation" style="border-left:3px solid ${cor.border}">
           <span class="part-arrow" style="color:${cor.border}">→</span>
-          ${esc(part.explicacao)}
+          ${esc(explicacao)}
         </div>
       </div>`;
   }).join("");
