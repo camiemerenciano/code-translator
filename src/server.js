@@ -29,17 +29,23 @@ app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, 
     const email = session.customer_details?.email || session.customer_email;
 
     if (email && supabase) {
-      // Busca o usuário pelo e-mail e marca como pago nos metadados
-      const { data: { users } } = await supabase.auth.admin.listUsers();
-      const user = users?.find(u => u.email === email);
-
-      if (user) {
-        await supabase.auth.admin.updateUserById(user.id, {
-          user_metadata: { ...user.user_metadata, paid: true, paid_at: new Date().toISOString() },
-        });
-        console.log(`✅ Acesso liberado para: ${email}`);
-      } else {
-        console.warn(`⚠ Pagamento recebido mas usuário não encontrado: ${email}`);
+      try {
+        // Busca direta por e-mail — evita paginação de listUsers()
+        const { data, error } = await supabase.auth.admin.getUserByEmail(email);
+        if (error || !data?.user) {
+          console.warn(`⚠ Pagamento recebido mas usuário não encontrado: ${email}`);
+        } else {
+          await supabase.auth.admin.updateUserById(data.user.id, {
+            user_metadata: {
+              ...data.user.user_metadata,
+              paid: true,
+              paid_at: new Date().toISOString(),
+            },
+          });
+          console.log(`✅ Acesso liberado para: ${email}`);
+        }
+      } catch (err) {
+        console.error(`❌ Erro ao liberar acesso para ${email}:`, err.message);
       }
     }
   }
@@ -68,6 +74,11 @@ const supabase = (SUPABASE_URL && SUPABASE_SVC_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SVC_KEY)
   : null;
 
+// Cliente anon reutilizável para cadastro (evita recriar a cada request)
+const supabaseAnon = (SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
 const EXPLAIN_PROMPT = `Você receberá blocos de código numerados. Para cada bloco, faça uma TRADUÇÃO LITERAL e DETALHADA para o português — como se estivesse traduzindo de um idioma para outro, parte por parte, em linguagem do dia a dia. Explique cada linha ou instrução do bloco.
 
 Exemplos do estilo esperado:
@@ -78,24 +89,30 @@ Bloco: "lista = []\ncontador = 0"
 Bloco: "while contador < 5:\n    numero = int(input('Digite um número: '))\n    lista.append(numero)\n    contador += 1"
 → "Enquanto o contador for menor que 5, repita: peça ao usuário que digite um número, converta para inteiro e guarde em 'numero'. Adicione esse número à lista. Some 1 ao contador."
 
-Bloco: "print('Os números são:', lista)"
-→ "Mostre na tela a mensagem 'Os números são:' seguida do conteúdo da lista."
-
-Bloco: "def calcularDesconto(preco, percentual):\n    return preco * (1 - percentual / 100)"
-→ "Crie uma função chamada 'calcularDesconto' que recebe o preço e o percentual. Ela retorna o preço multiplicado por 1 menos o percentual dividido por 100."
-
 Regras:
 - Explique cada linha ou instrução separadamente dentro da resposta
 - Use linguagem natural, cotidiana, sem termos técnicos
 - Não copie código na resposta
 
+Além das explicações, avalie o código inteiro e retorne duas métricas:
+- "boasPraticas": nota de 0 a 10 e um comentário curto (1 frase) explicando o ponto principal
+- "seguranca": nota de 0 a 10 e um comentário curto (1 frase) sobre o principal risco ou ponto positivo de segurança
+
 Retorne SOMENTE este JSON:
-{ "explicacoes": ["tradução detalhada do bloco 1", "tradução detalhada do bloco 2", ...] }`;
+{
+  "explicacoes": ["tradução detalhada do bloco 1", "tradução detalhada do bloco 2", ...],
+  "boasPraticas": { "nota": 7, "comentario": "Código organizado, mas sem tratamento de erros." },
+  "seguranca": { "nota": 5, "comentario": "Entrada do usuário não está sendo validada." }
+}`;
 
 const EXPLAIN_JSON_PROMPT = `Você receberá um JSON de erro de sistema. Traduza cada parte importante para português simples — o que deu errado, onde aconteceu, e o que fazer. Máximo 5 frases, uma por grupo de informação. Não copie o JSON na resposta.
 
 Retorne SOMENTE este JSON:
-{ "explicacoes": ["tradução 1", "tradução 2", ...] }`;
+{
+  "explicacoes": ["tradução 1", "tradução 2", ...],
+  "boasPraticas": { "nota": 0, "comentario": "Não aplicável — este é um JSON de erro, não código executável." },
+  "seguranca": { "nota": 0, "comentario": "Não aplicável — este é um JSON de erro, não código executável." }
+}`;
 
 // ── Middleware: verifica JWT do Supabase ──────────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -183,14 +200,12 @@ app.post("/api/recuperar-senha", async (req, res) => {
 });
 
 app.post("/api/cadastro", async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: "Supabase não configurado." });
+  if (!supabase || !supabaseAnon) return res.status(500).json({ error: "Supabase não configurado." });
 
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: "E-mail e senha obrigatórios." });
 
-  // signUp com cliente anon para salvar senha corretamente
-  const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { data: signUpData, error: signUpError } = await anonClient.auth.signUp({ email, password });
+  const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({ email, password });
 
   if (signUpError) {
     if (signUpError.message.includes("already registered")) return res.status(400).json({ error: "Este e-mail já está cadastrado." });
@@ -302,11 +317,17 @@ function splitBlocks(code, linguagem) {
   return blocks.length ? blocks : [code];
 }
 
+const MAX_CODIGO_LENGTH = 8000;
+
 app.post("/api/traduzir", requireAuth, async (req, res) => {
   const { codigo, linguagem } = req.body;
 
   if (!codigo || !linguagem) {
     return res.status(400).json({ error: "Campos obrigatórios: codigo, linguagem" });
+  }
+
+  if (codigo.length > MAX_CODIGO_LENGTH) {
+    return res.status(400).json({ error: `Código muito longo. Máximo permitido: ${MAX_CODIGO_LENGTH} caracteres.` });
   }
 
   const key = process.env.OPENAI_API_KEY;
@@ -352,21 +373,28 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
       explicacao: parsed.explicacoes[i] || '',
     }));
 
-    // Registra uso diário e retorna contagem atualizada
+    // Registra uso diário — isolado para não afetar a resposta em caso de falha
     let usageCount = null;
     if (supabase && req.user) {
-      const today = new Date().toISOString().slice(0, 10);
-      await supabase.rpc("increment_daily_usage", { uid: req.user.id, d: today });
-      const { data: usage } = await supabase
-        .from("daily_usage")
-        .select("count")
-        .eq("user_id", req.user.id)
-        .eq("date", today)
-        .single();
-      usageCount = usage?.count ?? null;
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        await supabase.rpc("increment_daily_usage", { uid: req.user.id, d: today });
+        const { data: usage } = await supabase
+          .from("daily_usage")
+          .select("count")
+          .eq("user_id", req.user.id)
+          .eq("date", today)
+          .single();
+        usageCount = usage?.count ?? null;
+      } catch (usageErr) {
+        console.error("Erro ao registrar uso:", usageErr.message);
+      }
     }
 
-    res.json({ parts, usageCount });
+    const boasPraticas = parsed.boasPraticas ?? null;
+    const seguranca    = parsed.seguranca    ?? null;
+
+    res.json({ parts, usageCount, boasPraticas, seguranca });
   } catch (err) {
     let msg = err.message || "Erro desconhecido";
     if (err.status === 401) msg = "Chave OpenAI inválida no servidor.";

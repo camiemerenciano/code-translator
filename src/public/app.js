@@ -1,9 +1,15 @@
-const btnTraduzir  = document.getElementById("btnTraduzir");
-const btnLimpar    = document.getElementById("btnLimpar");
-const btnCopiar    = document.getElementById("btnCopiar");
-const btnLogout    = document.getElementById("btnLogout");
-const btnEditar    = document.getElementById("btnEditar");
-const btnDetectar  = document.getElementById("btnDetectar");
+const btnTraduzir        = document.getElementById("btnTraduzir");
+const btnLimpar          = document.getElementById("btnLimpar");
+const btnCopiar          = document.getElementById("btnCopiar");
+const btnLogout          = document.getElementById("btnLogout");
+const btnEditar          = document.getElementById("btnEditar");
+const btnDetectar        = document.getElementById("btnDetectar");
+const btnHistorico       = document.getElementById("btnHistorico");
+const btnFecharHistorico = document.getElementById("btnFecharHistorico");
+const btnLimparHistorico = document.getElementById("btnLimparHistorico");
+const historicoPanel     = document.getElementById("historicoPanel");
+const historicoOverlay   = document.getElementById("historicoOverlay");
+const historicoLista     = document.getElementById("historicoLista");
 const inputCodigo  = document.getElementById("inputCodigo");
 const codeColored  = document.getElementById("codeColored");
 const codeColoredContent = document.getElementById("codeColoredContent");
@@ -27,6 +33,10 @@ btnCopiar.addEventListener("click", copiar);
 btnLogout.addEventListener("click", logout);
 btnEditar.addEventListener("click", voltarParaEditar);
 btnDetectar.addEventListener("click", detectarLinguagem);
+btnHistorico.addEventListener("click", abrirHistorico);
+btnFecharHistorico.addEventListener("click", fecharHistorico);
+btnLimparHistorico.addEventListener("click", limparHistorico);
+historicoOverlay.addEventListener("click", fecharHistorico);
 
 inputCodigo.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") traduzir();
@@ -102,7 +112,8 @@ async function traduzir() {
     if (data.error) throw new Error(data.error);
     if (!data.parts?.length) throw new Error("Nenhuma parte retornada. Tente novamente.");
 
-    renderResultado(codigo, data.parts);
+    renderResultado(codigo, data.parts, data.boasPraticas, data.seguranca);
+    salvarHistorico(codigo, linguagem, data.parts, data.boasPraticas, data.seguranca);
     setStatus("✓ Tradução concluída", "ok");
     if (data.usageCount !== null && data.usageCount !== undefined) {
       const el = document.getElementById("usageCount");
@@ -119,7 +130,7 @@ async function traduzir() {
   }
 }
 
-function renderResultado(codigoOriginal, parts) {
+function renderResultado(codigoOriginal, parts, boasPraticas, seguranca) {
   let html = esc(codigoOriginal);
   parts.forEach((part, i) => {
     const cor = COLORS[i % COLORS.length];
@@ -150,7 +161,36 @@ function renderResultado(codigoOriginal, parts) {
           ${esc(explicacao)}
         </div>
       </div>`;
-  }).join("");
+  }).join("") + renderMedidores(boasPraticas, seguranca);
+}
+
+function renderMedidores(boasPraticas, seguranca) {
+  if (!boasPraticas && !seguranca) return "";
+
+  function medidorHtml(label, icone, dados) {
+    if (!dados) return "";
+    const nota = Math.min(10, Math.max(0, Number(dados.nota) || 0));
+    const pct  = nota * 10;
+    const cor  = nota >= 7 ? "#4ade80" : nota >= 4 ? "#f9c784" : "#f4826e";
+    const corBg = nota >= 7 ? "rgba(74,222,128,0.08)" : nota >= 4 ? "rgba(249,199,132,0.08)" : "rgba(244,130,110,0.08)";
+    return `
+      <div class="medidor">
+        <div class="medidor-header">
+          <span class="medidor-label">${icone} ${label}</span>
+          <span class="medidor-nota" style="color:${cor}">${nota}/10</span>
+        </div>
+        <div class="medidor-barra-bg">
+          <div class="medidor-barra" style="width:${pct}%;background:${cor}"></div>
+        </div>
+        <p class="medidor-comentario" style="background:${corBg};border-left:3px solid ${cor}">${esc(dados.comentario || "")}</p>
+      </div>`;
+  }
+
+  return `
+    <div class="medidores-wrapper">
+      ${medidorHtml("Boas Práticas", "✦", boasPraticas)}
+      ${medidorHtml("Segurança", "🔒", seguranca)}
+    </div>`;
 }
 
 function voltarParaEditar() {
@@ -202,4 +242,110 @@ function esc(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+// ── Histórico ────────────────────────────────────────────────────────────────
+const HISTORICO_KEY = "ct-historico";
+const HISTORICO_MAX = 50;
+
+function carregarHistorico() {
+  try { return JSON.parse(localStorage.getItem(HISTORICO_KEY) || "[]"); }
+  catch { return []; }
+}
+
+function salvarHistorico(codigo, linguagem, parts, boasPraticas, seguranca) {
+  try {
+    const lista = carregarHistorico();
+    lista.unshift({
+      id: Date.now().toString(),
+      data: new Date().toISOString(),
+      linguagem,
+      codigo,
+      parts,
+      boasPraticas: boasPraticas ?? null,
+      seguranca: seguranca ?? null,
+    });
+    localStorage.setItem(HISTORICO_KEY, JSON.stringify(lista.slice(0, HISTORICO_MAX)));
+  } catch {
+    // localStorage indisponível ou cheio — ignora silenciosamente
+  }
+}
+
+function abrirHistorico() {
+  renderHistorico();
+  historicoPanel.classList.remove("hidden");
+  historicoOverlay.classList.remove("hidden");
+}
+
+function fecharHistorico() {
+  historicoPanel.classList.add("hidden");
+  historicoOverlay.classList.add("hidden");
+}
+
+function limparHistorico() {
+  if (!confirm("Remover todo o histórico?")) return;
+  localStorage.removeItem(HISTORICO_KEY);
+  renderHistorico();
+}
+
+function removerItemHistorico(id) {
+  const lista = carregarHistorico().filter((h) => h.id !== id);
+  localStorage.setItem(HISTORICO_KEY, JSON.stringify(lista));
+  renderHistorico();
+}
+
+function restaurarHistorico(item) {
+  fecharHistorico();
+  // Limpa estado atual antes de restaurar
+  inputCodigo.value = item.codigo;
+  inputCodigo.classList.remove("hidden");
+  codeColored.classList.add("hidden");
+  codeColoredContent.innerHTML = "";
+  outputEl.innerHTML = "";
+  document.getElementById("linguagem").value = item.linguagem;
+  renderResultado(item.codigo, item.parts, item.boasPraticas, item.seguranca);
+  setStatus("✓ Histórico restaurado", "ok");
+}
+
+function renderHistorico() {
+  const lista = carregarHistorico();
+
+  if (!lista.length) {
+    historicoLista.innerHTML = `<p class="historico-vazio">Nenhuma tradução salva ainda.</p>`;
+    return;
+  }
+
+  historicoLista.innerHTML = lista.map((item) => {
+    const data = new Date(item.data);
+    const dataStr = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+      + " " + data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const preview = item.codigo.trim().split("\n")[0].slice(0, 50);
+    return `
+      <div class="historico-item" data-id="${item.id}">
+        <div class="historico-item-header">
+          <span class="historico-item-lang">${esc(item.linguagem)}</span>
+          <span class="historico-item-data">${dataStr}</span>
+        </div>
+        <div class="historico-item-preview">${esc(preview)}</div>
+        <button class="historico-item-del" title="Remover" data-del="${item.id}">✕</button>
+      </div>`;
+  }).join("");
+
+  // Restaurar ao clicar no item
+  historicoLista.querySelectorAll(".historico-item").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("[data-del]")) return;
+      const id = el.dataset.id;
+      const item = carregarHistorico().find((h) => h.id === id);
+      if (item) restaurarHistorico(item);
+    });
+  });
+
+  // Remover item individual
+  historicoLista.querySelectorAll("[data-del]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      removerItemHistorico(btn.dataset.del);
+    });
+  });
 }

@@ -16,9 +16,23 @@
       <span class="badge">powered by IA</span>
       <span id="userEmail" class="user-email"></span>
       <span id="usageCount" class="usage-count"></span>
+      <button id="btnHistorico" class="btn-ghost-sm">⏱ Histórico</button>
       <button id="btnLogout" class="btn-logout">Sair</button>
     </div>
   </header>
+
+  <!-- Painel de histórico -->
+  <div id="historicoOverlay" class="historico-overlay hidden"></div>
+  <div id="historicoPanel" class="historico-panel hidden">
+    <div class="historico-header">
+      <span class="historico-title">Histórico</span>
+      <div class="historico-header-actions">
+        <button id="btnLimparHistorico" class="btn-ghost-sm">Limpar tudo</button>
+        <button id="btnFecharHistorico" class="btn-ghost-sm">✕</button>
+      </div>
+    </div>
+    <div id="historicoLista" class="historico-lista"></div>
+  </div>
 
   <main>
     <!-- Painel esquerdo -->
@@ -27,6 +41,7 @@
         <span class="panel-title">Código</span>
         <div class="lang-select">
           <label for="linguagem">Linguagem:</label>
+          <button id="btnDetectar" class="btn-ghost-sm">⚡ Detectar</button>
           <select id="linguagem">
             <option>SQL</option>
             <option>Python</option>
