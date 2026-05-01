@@ -221,6 +221,56 @@ app.post("/api/cadastro", async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Histórico ────────────────────────────────────────────────────────────────
+app.get("/api/historico", requireAuth, async (req, res) => {
+  if (!supabase) return res.json({ historico: [] });
+  const { data, error } = await supabase
+    .from("historico")
+    .select("id, linguagem, codigo, parts, boas_praticas, seguranca, criado_em")
+    .eq("user_id", req.user.id)
+    .order("criado_em", { ascending: false })
+    .limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ historico: data });
+});
+
+app.post("/api/historico", requireAuth, async (req, res) => {
+  if (!supabase) return res.json({ ok: true });
+  const { linguagem, codigo, parts, boasPraticas, seguranca } = req.body;
+  if (!linguagem || !codigo || !parts) return res.status(400).json({ error: "Campos obrigatórios ausentes." });
+  const { error } = await supabase.from("historico").insert({
+    user_id: req.user.id,
+    linguagem,
+    codigo,
+    parts,
+    boas_praticas: boasPraticas ?? null,
+    seguranca:     seguranca    ?? null,
+  });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+app.delete("/api/historico/:id", requireAuth, async (req, res) => {
+  if (!supabase) return res.json({ ok: true });
+  const { error } = await supabase
+    .from("historico")
+    .delete()
+    .eq("id", req.params.id)
+    .eq("user_id", req.user.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+app.delete("/api/historico", requireAuth, async (req, res) => {
+  if (!supabase) return res.json({ ok: true });
+  const { error } = await supabase
+    .from("historico")
+    .delete()
+    .eq("user_id", req.user.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 app.get("/api/uso", requireAuth, async (req, res) => {
   if (!supabase) return res.json({ count: 0 });
   const today = new Date().toISOString().slice(0, 10);

@@ -245,36 +245,26 @@ function esc(str) {
 }
 
 // ── Histórico ────────────────────────────────────────────────────────────────
-const HISTORICO_KEY = "ct-historico";
-const HISTORICO_MAX = 50;
+// Cache em memória para evitar reload desnecessário
+let _historicoCache = null;
 
-function carregarHistorico() {
-  try { return JSON.parse(localStorage.getItem(HISTORICO_KEY) || "[]"); }
-  catch { return []; }
-}
-
-function salvarHistorico(codigo, linguagem, parts, boasPraticas, seguranca) {
+async function salvarHistorico(codigo, linguagem, parts, boasPraticas, seguranca) {
+  const token = getAccessToken();
+  if (!token) return;
   try {
-    const lista = carregarHistorico();
-    lista.unshift({
-      id: Date.now().toString(),
-      data: new Date().toISOString(),
-      linguagem,
-      codigo,
-      parts,
-      boasPraticas: boasPraticas ?? null,
-      seguranca: seguranca ?? null,
+    await fetch("/api/historico", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ codigo, linguagem, parts, boasPraticas, seguranca }),
     });
-    localStorage.setItem(HISTORICO_KEY, JSON.stringify(lista.slice(0, HISTORICO_MAX)));
-  } catch {
-    // localStorage indisponível ou cheio — ignora silenciosamente
-  }
+    _historicoCache = null; // invalida cache
+  } catch { /* falha silenciosa — não bloqueia o fluxo */ }
 }
 
 function abrirHistorico() {
-  renderHistorico();
   historicoPanel.classList.remove("hidden");
   historicoOverlay.classList.remove("hidden");
+  renderHistorico();
 }
 
 function fecharHistorico() {
@@ -282,70 +272,109 @@ function fecharHistorico() {
   historicoOverlay.classList.add("hidden");
 }
 
-function limparHistorico() {
+async function limparHistorico() {
   if (!confirm("Remover todo o histórico?")) return;
-  localStorage.removeItem(HISTORICO_KEY);
-  renderHistorico();
+  const token = getAccessToken();
+  if (!token) return;
+  historicoLista.innerHTML = `<p class="historico-vazio">Removendo...</p>`;
+  try {
+    await fetch("/api/historico", {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+    _historicoCache = null;
+    renderHistorico();
+  } catch {
+    renderHistorico();
+  }
 }
 
-function removerItemHistorico(id) {
-  const lista = carregarHistorico().filter((h) => h.id !== id);
-  localStorage.setItem(HISTORICO_KEY, JSON.stringify(lista));
-  renderHistorico();
+async function removerItemHistorico(id) {
+  const token = getAccessToken();
+  if (!token) return;
+  try {
+    await fetch(`/api/historico/${id}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+    _historicoCache = null;
+    renderHistorico();
+  } catch {
+    renderHistorico();
+  }
 }
 
 function restaurarHistorico(item) {
   fecharHistorico();
-  // Limpa estado atual antes de restaurar
   inputCodigo.value = item.codigo;
   inputCodigo.classList.remove("hidden");
   codeColored.classList.add("hidden");
   codeColoredContent.innerHTML = "";
   outputEl.innerHTML = "";
   document.getElementById("linguagem").value = item.linguagem;
-  renderResultado(item.codigo, item.parts, item.boasPraticas, item.seguranca);
+  const bp = item.boas_praticas ?? item.boasPraticas ?? null;
+  const seg = item.seguranca ?? null;
+  renderResultado(item.codigo, item.parts, bp, seg);
   setStatus("✓ Histórico restaurado", "ok");
 }
 
-function renderHistorico() {
-  const lista = carregarHistorico();
+async function renderHistorico() {
+  historicoLista.innerHTML = `<p class="historico-vazio">Carregando...</p>`;
 
-  if (!lista.length) {
-    historicoLista.innerHTML = `<p class="historico-vazio">Nenhuma tradução salva ainda.</p>`;
+  const token = getAccessToken();
+  if (!token) {
+    historicoLista.innerHTML = `<p class="historico-vazio">Faça login para ver o histórico.</p>`;
     return;
   }
 
-  historicoLista.innerHTML = lista.map((item) => {
-    const data = new Date(item.data);
-    const dataStr = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-      + " " + data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    const preview = item.codigo.trim().split("\n")[0].slice(0, 50);
-    return `
-      <div class="historico-item" data-id="${item.id}">
-        <div class="historico-item-header">
-          <span class="historico-item-lang">${esc(item.linguagem)}</span>
-          <span class="historico-item-data">${dataStr}</span>
-        </div>
-        <div class="historico-item-preview">${esc(preview)}</div>
-        <button class="historico-item-del" title="Remover" data-del="${item.id}">✕</button>
-      </div>`;
-  }).join("");
+  try {
+    if (!_historicoCache) {
+      const res = await fetch("/api/historico", {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      const data = await res.json();
+      _historicoCache = data.historico || [];
+    }
 
-  // Restaurar ao clicar no item
-  historicoLista.querySelectorAll(".historico-item").forEach((el) => {
-    el.addEventListener("click", (e) => {
-      if (e.target.closest("[data-del]")) return;
-      const id = el.dataset.id;
-      const item = carregarHistorico().find((h) => h.id === id);
-      if (item) restaurarHistorico(item);
-    });
-  });
+    const lista = _historicoCache;
 
-  // Remover item individual
-  historicoLista.querySelectorAll("[data-del]").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      removerItemHistorico(btn.dataset.del);
+    if (!lista.length) {
+      historicoLista.innerHTML = `<p class="historico-vazio">Nenhuma tradução salva ainda.</p>`;
+      return;
+    }
+
+    historicoLista.innerHTML = lista.map((item) => {
+      const data = new Date(item.criado_em);
+      const dataStr = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+        + " " + data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const preview = item.codigo.trim().split("\n")[0].slice(0, 50);
+      return `
+        <div class="historico-item" data-id="${item.id}">
+          <div class="historico-item-header">
+            <span class="historico-item-lang">${esc(item.linguagem)}</span>
+            <span class="historico-item-data">${dataStr}</span>
+          </div>
+          <div class="historico-item-preview">${esc(preview)}</div>
+          <button class="historico-item-del" title="Remover" data-del="${item.id}">✕</button>
+        </div>`;
+    }).join("");
+
+    historicoLista.querySelectorAll(".historico-item").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-del]")) return;
+        const id = el.dataset.id;
+        const item = _historicoCache?.find((h) => h.id === id);
+        if (item) restaurarHistorico(item);
+      });
     });
-  });
+
+    historicoLista.querySelectorAll("[data-del]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removerItemHistorico(btn.dataset.del);
+      });
+    });
+  } catch {
+    historicoLista.innerHTML = `<p class="historico-vazio">Erro ao carregar histórico.</p>`;
+  }
 }
