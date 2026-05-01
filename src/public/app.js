@@ -1,3 +1,4 @@
+// ── Tradutor
 const btnTraduzir        = document.getElementById("btnTraduzir");
 const btnLimpar          = document.getElementById("btnLimpar");
 const btnCopiar          = document.getElementById("btnCopiar");
@@ -10,11 +11,27 @@ const btnLimparHistorico = document.getElementById("btnLimparHistorico");
 const historicoPanel     = document.getElementById("historicoPanel");
 const historicoOverlay   = document.getElementById("historicoOverlay");
 const historicoLista     = document.getElementById("historicoLista");
-const inputCodigo  = document.getElementById("inputCodigo");
-const codeColored  = document.getElementById("codeColored");
+const inputCodigo        = document.getElementById("inputCodigo");
+const codeColored        = document.getElementById("codeColored");
 const codeColoredContent = document.getElementById("codeColoredContent");
-const outputEl     = document.getElementById("outputTraducao");
-const statusEl     = document.getElementById("status");
+const outputEl           = document.getElementById("outputTraducao");
+const statusEl           = document.getElementById("status");
+
+// ── Comparador
+const btnConverter     = document.getElementById("btnConverter");
+const btnLimparCmp     = document.getElementById("btnLimparCmp");
+const btnCopiarCmp     = document.getElementById("btnCopiarCmp");
+const btnDetectarCmp   = document.getElementById("btnDetectarCmp");
+const inputComparador  = document.getElementById("inputComparador");
+const outputComparador = document.getElementById("outputComparador");
+
+// ── Tabs
+const tabTradutor      = document.getElementById("tabTradutor");
+const tabComparador    = document.getElementById("tabComparador");
+const tradutorSection  = document.getElementById("tradutorSection");
+const comparadorSection= document.getElementById("comparadorSection");
+const footerTradutor   = document.getElementById("footerTradutor");
+const footerComparador = document.getElementById("footerComparador");
 
 const COLORS = [
   { bg: "#3d1a0a", text: "#E8956D", border: "#C1440E" },
@@ -37,9 +54,19 @@ btnHistorico.addEventListener("click", abrirHistorico);
 btnFecharHistorico.addEventListener("click", fecharHistorico);
 btnLimparHistorico.addEventListener("click", limparHistorico);
 historicoOverlay.addEventListener("click", fecharHistorico);
+btnConverter.addEventListener("click", converter);
+btnLimparCmp.addEventListener("click", limparComparador);
+btnCopiarCmp.addEventListener("click", copiarComparador);
+btnDetectarCmp.addEventListener("click", detectarLinguagemCmp);
+tabTradutor.addEventListener("click", () => ativarTab("tradutor"));
+tabComparador.addEventListener("click", () => ativarTab("comparador"));
 
 inputCodigo.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") traduzir();
+});
+
+inputComparador.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") converter();
 });
 
 async function detectarLinguagem() {
@@ -113,7 +140,7 @@ async function traduzir() {
     if (!data.parts?.length) throw new Error("Nenhuma parte retornada. Tente novamente.");
 
     renderResultado(codigo, data.parts, data.boasPraticas, data.seguranca);
-    salvarHistorico(codigo, linguagem, data.parts, data.boasPraticas, data.seguranca);
+    salvarHistorico({ tipo: "traducao", codigo, linguagem, parts: data.parts, boasPraticas: data.boasPraticas, seguranca: data.seguranca });
     setStatus("✓ Tradução concluída", "ok");
     if (data.usageCount !== null && data.usageCount !== undefined) {
       const el = document.getElementById("usageCount");
@@ -244,21 +271,118 @@ function esc(str) {
     .replace(/"/g, "&quot;");
 }
 
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+function ativarTab(tab) {
+  const isTrad = tab === "tradutor";
+  tabTradutor.classList.toggle("tab-active", isTrad);
+  tabComparador.classList.toggle("tab-active", !isTrad);
+  tradutorSection.classList.toggle("hidden", !isTrad);
+  comparadorSection.classList.toggle("hidden", isTrad);
+  footerTradutor.classList.toggle("hidden", !isTrad);
+  footerComparador.classList.toggle("hidden", isTrad);
+  setStatus("", "");
+}
+
+// ── Comparador ───────────────────────────────────────────────────────────────
+async function converter() {
+  const codigo = inputComparador.value.trim();
+  const linguagemOrigem  = document.getElementById("cmpLingOrigem").value;
+  const linguagemDestino = document.getElementById("cmpLingDestino").value;
+  const token = getAccessToken();
+
+  if (!codigo) return setStatus("⚠ Cole um código primeiro", "err");
+  if (linguagemOrigem === linguagemDestino) return setStatus("⚠ Escolha linguagens diferentes", "err");
+  if (!token) return setStatus("⚠ Sessão expirada, faça login novamente", "err");
+
+  setStatus("Convertendo...", "loading");
+  btnConverter.disabled = true;
+  btnConverter.textContent = "Convertendo...";
+  outputComparador.textContent = "";
+
+  try {
+    const res = await fetch("/api/converter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ codigo, linguagemOrigem, linguagemDestino }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    outputComparador.textContent = data.codigoConvertido;
+    setStatus(`✓ Convertido de ${linguagemOrigem} para ${linguagemDestino}`, "ok");
+    salvarHistorico({ tipo: "conversao", codigo, linguagem: linguagemOrigem, linguagemDestino, codigoConvertido: data.codigoConvertido });
+  } catch (err) {
+    setStatus("✗ " + err.message, "err");
+  } finally {
+    btnConverter.disabled = false;
+    btnConverter.textContent = "⇄ Converter";
+  }
+}
+
+function limparComparador() {
+  inputComparador.value = "";
+  outputComparador.textContent = "";
+  setStatus("", "");
+  inputComparador.focus();
+}
+
+function copiarComparador() {
+  const texto = outputComparador.textContent.trim();
+  if (!texto) return setStatus("Nada para copiar", "err");
+  navigator.clipboard.writeText(texto).then(() => setStatus("✓ Copiado!", "ok"));
+}
+
+async function detectarLinguagemCmp() {
+  const codigo = inputComparador.value.trim();
+  const token = getAccessToken();
+  if (!codigo) return setStatus("⚠ Cole um código primeiro", "err");
+  if (!token)  return setStatus("⚠ Sessão expirada, faça login novamente", "err");
+
+  try { JSON.parse(codigo); document.getElementById("cmpLingOrigem").value = "JSON"; return setStatus("✓ Linguagem detectada: JSON", "ok"); } catch {}
+
+  btnDetectarCmp.disabled = true;
+  btnDetectarCmp.textContent = "Detectando...";
+  setStatus("Detectando linguagem...", "loading");
+
+  try {
+    const res = await fetch("/api/detectar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ codigo }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (!data.linguagem) return setStatus("⚠ Não foi possível detectar a linguagem", "err");
+    const select = document.getElementById("cmpLingOrigem");
+    const option = [...select.options].find(o => o.value === data.linguagem);
+    if (option) { select.value = data.linguagem; setStatus(`✓ Linguagem detectada: ${data.linguagem}`, "ok"); }
+    else setStatus(`⚠ Linguagem detectada (${data.linguagem}) não está na lista`, "err");
+  } catch (err) {
+    setStatus("✗ " + err.message, "err");
+  } finally {
+    btnDetectarCmp.disabled = false;
+    btnDetectarCmp.textContent = "⚡ Detectar";
+  }
+}
+
 // ── Histórico ────────────────────────────────────────────────────────────────
 // Cache em memória para evitar reload desnecessário
 let _historicoCache = null;
 
-async function salvarHistorico(codigo, linguagem, parts, boasPraticas, seguranca) {
+async function salvarHistorico(payload) {
   const token = getAccessToken();
   if (!token) return;
   try {
-    await fetch("/api/historico", {
+    const res = await fetch("/api/historico", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-      body: JSON.stringify({ codigo, linguagem, parts, boasPraticas, seguranca }),
+      body: JSON.stringify(payload),
     });
-    _historicoCache = null; // invalida cache
-  } catch { /* falha silenciosa — não bloqueia o fluxo */ }
+    const data = await res.json();
+    if (!res.ok) console.error("Erro ao salvar histórico:", data.error);
+    else _historicoCache = null;
+  } catch (err) {
+    console.error("Erro ao salvar histórico:", err.message);
+  }
 }
 
 function abrirHistorico() {
@@ -306,16 +430,27 @@ async function removerItemHistorico(id) {
 
 function restaurarHistorico(item) {
   fecharHistorico();
-  inputCodigo.value = item.codigo;
-  inputCodigo.classList.remove("hidden");
-  codeColored.classList.add("hidden");
-  codeColoredContent.innerHTML = "";
-  outputEl.innerHTML = "";
-  document.getElementById("linguagem").value = item.linguagem;
-  const bp = item.boas_praticas ?? item.boasPraticas ?? null;
-  const seg = item.seguranca ?? null;
-  renderResultado(item.codigo, item.parts, bp, seg);
-  setStatus("✓ Histórico restaurado", "ok");
+
+  if (item.tipo === "conversao") {
+    ativarTab("comparador");
+    inputComparador.value = item.codigo;
+    document.getElementById("cmpLingOrigem").value = item.linguagem;
+    if (item.linguagem_destino) document.getElementById("cmpLingDestino").value = item.linguagem_destino;
+    outputComparador.textContent = item.codigo_convertido || "";
+    setStatus("✓ Conversão restaurada", "ok");
+  } else {
+    ativarTab("tradutor");
+    inputCodigo.value = item.codigo;
+    inputCodigo.classList.remove("hidden");
+    codeColored.classList.add("hidden");
+    codeColoredContent.innerHTML = "";
+    outputEl.innerHTML = "";
+    document.getElementById("linguagem").value = item.linguagem;
+    const bp  = item.boas_praticas ?? null;
+    const seg = item.seguranca     ?? null;
+    renderResultado(item.codigo, item.parts, bp, seg);
+    setStatus("✓ Histórico restaurado", "ok");
+  }
 }
 
 async function renderHistorico() {
@@ -333,6 +468,7 @@ async function renderHistorico() {
         headers: { "Authorization": `Bearer ${token}` },
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao carregar histórico.");
       _historicoCache = data.historico || [];
     }
 
@@ -344,14 +480,19 @@ async function renderHistorico() {
     }
 
     historicoLista.innerHTML = lista.map((item) => {
-      const data = new Date(item.criado_em);
-      const dataStr = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-        + " " + data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const dt = new Date(item.criado_em);
+      const dataStr = dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+        + " " + dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const preview = item.codigo.trim().split("\n")[0].slice(0, 50);
+      const isConversao = item.tipo === "conversao";
+      const labelLang = isConversao
+        ? `${esc(item.linguagem)} → ${esc(item.linguagem_destino || "")}`
+        : esc(item.linguagem);
+      const tipoLabel = isConversao ? "⇄" : "T";
       return `
         <div class="historico-item" data-id="${item.id}">
           <div class="historico-item-header">
-            <span class="historico-item-lang">${esc(item.linguagem)}</span>
+            <span class="historico-item-lang">${tipoLabel} ${labelLang}</span>
             <span class="historico-item-data">${dataStr}</span>
           </div>
           <div class="historico-item-preview">${esc(preview)}</div>

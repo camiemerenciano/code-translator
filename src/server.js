@@ -226,7 +226,7 @@ app.get("/api/historico", requireAuth, async (req, res) => {
   if (!supabase) return res.json({ historico: [] });
   const { data, error } = await supabase
     .from("historico")
-    .select("id, linguagem, codigo, parts, boas_praticas, seguranca, criado_em")
+    .select("id, tipo, linguagem, linguagem_destino, codigo, codigo_convertido, parts, boas_praticas, seguranca, criado_em")
     .eq("user_id", req.user.id)
     .order("criado_em", { ascending: false })
     .limit(50);
@@ -236,15 +236,18 @@ app.get("/api/historico", requireAuth, async (req, res) => {
 
 app.post("/api/historico", requireAuth, async (req, res) => {
   if (!supabase) return res.json({ ok: true });
-  const { linguagem, codigo, parts, boasPraticas, seguranca } = req.body;
-  if (!linguagem || !codigo || !parts) return res.status(400).json({ error: "Campos obrigatórios ausentes." });
+  const { tipo, linguagem, linguagemDestino, codigo, codigoConvertido, parts, boasPraticas, seguranca } = req.body;
+  if (!linguagem || !codigo) return res.status(400).json({ error: "Campos obrigatórios ausentes." });
   const { error } = await supabase.from("historico").insert({
-    user_id: req.user.id,
+    user_id:           req.user.id,
+    tipo:              tipo              ?? "traducao",
     linguagem,
+    linguagem_destino: linguagemDestino  ?? null,
     codigo,
-    parts,
-    boas_praticas: boasPraticas ?? null,
-    seguranca:     seguranca    ?? null,
+    codigo_convertido: codigoConvertido  ?? null,
+    parts:             parts             ?? null,
+    boas_praticas:     boasPraticas      ?? null,
+    seguranca:         seguranca         ?? null,
   });
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
@@ -450,6 +453,50 @@ app.post("/api/traduzir", requireAuth, async (req, res) => {
     if (err.status === 401) msg = "Chave OpenAI inválida no servidor.";
     else if (err.status === 429) msg = "Limite de requisições atingido. Aguarde e tente novamente.";
     res.status(500).json({ error: msg });
+  }
+});
+
+app.post("/api/converter", requireAuth, async (req, res) => {
+  const { codigo, linguagemOrigem, linguagemDestino } = req.body;
+
+  if (!codigo || !linguagemOrigem || !linguagemDestino) {
+    return res.status(400).json({ error: "Campos obrigatórios: codigo, linguagemOrigem, linguagemDestino" });
+  }
+  if (linguagemOrigem === linguagemDestino) {
+    return res.status(400).json({ error: "As linguagens precisam ser diferentes." });
+  }
+  if (codigo.length > MAX_CODIGO_LENGTH) {
+    return res.status(400).json({ error: `Código muito longo. Máximo: ${MAX_CODIGO_LENGTH} caracteres.` });
+  }
+
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return res.status(500).json({ error: "Chave OpenAI não configurada." });
+
+  try {
+    const openai = new OpenAI({ apiKey: key });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Você é um especialista em conversão de código entre linguagens de programação.
+Converta o código de ${linguagemOrigem} para ${linguagemDestino} mantendo a mesma lógica e funcionalidade.
+Retorne SOMENTE o código convertido, sem explicações, sem blocos markdown, sem comentários extras.
+O código deve ser funcional e seguir as convenções e idiomas da linguagem ${linguagemDestino}.`,
+        },
+        {
+          role: "user",
+          content: `Converta de ${linguagemOrigem} para ${linguagemDestino}:\n\n${codigo}`,
+        },
+      ],
+    });
+
+    const codigoConvertido = completion.choices[0].message.content
+      .replace(/^```[\w]*\n?/, "").replace(/\n?```$/, "").trim();
+
+    res.json({ codigoConvertido });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Erro ao converter código." });
   }
 });
 

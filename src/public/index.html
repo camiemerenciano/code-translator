@@ -34,7 +34,14 @@
     <div id="historicoLista" class="historico-lista"></div>
   </div>
 
-  <main>
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button id="tabTradutor" class="tab-btn tab-active">Tradutor</button>
+    <button id="tabComparador" class="tab-btn">Comparador</button>
+  </div>
+
+  <!-- ── TRADUTOR ─────────────────────────────────────────────────────────── -->
+  <main id="tradutorSection">
     <!-- Painel esquerdo -->
     <div class="panel">
       <div class="panel-header">
@@ -58,14 +65,11 @@
             <option>Kotlin</option>
             <option>Swift</option>
             <option>Rust</option>
+            <option>JSON</option>
           </select>
         </div>
       </div>
-
-      <!-- Textarea de input (sempre visível) -->
       <textarea id="inputCodigo" spellcheck="false" placeholder="Cole seu código aqui...&#10;&#10;Ctrl+Enter para traduzir"></textarea>
-
-      <!-- Versão colorida do código (aparece após traduzir) -->
       <div id="codeColored" class="code-colored hidden">
         <div class="code-colored-header">
           <span>Código destacado</span>
@@ -85,10 +89,76 @@
     </div>
   </main>
 
+  <!-- ── COMPARADOR ──────────────────────────────────────────────────────── -->
+  <main id="comparadorSection" class="hidden">
+    <!-- Painel esquerdo: código original -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Código Original</span>
+        <div class="lang-select">
+          <label for="cmpLingOrigem">De:</label>
+          <button id="btnDetectarCmp" class="btn-ghost-sm">⚡ Detectar</button>
+          <select id="cmpLingOrigem">
+            <option>Python</option>
+            <option>JavaScript</option>
+            <option>TypeScript</option>
+            <option>Java</option>
+            <option>C#</option>
+            <option>C / C++</option>
+            <option>PHP</option>
+            <option>Ruby</option>
+            <option>Go</option>
+            <option>Shell / Bash</option>
+            <option>HTML / CSS</option>
+            <option>Kotlin</option>
+            <option>Swift</option>
+            <option>Rust</option>
+            <option>SQL</option>
+          </select>
+        </div>
+      </div>
+      <textarea id="inputComparador" spellcheck="false" placeholder="Cole o código que deseja converter...&#10;&#10;Ctrl+Enter para converter"></textarea>
+    </div>
+
+    <!-- Painel direito: código convertido -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title output-title">Código Convertido</span>
+        <div class="lang-select">
+          <label for="cmpLingDestino">Para:</label>
+          <select id="cmpLingDestino">
+            <option>JavaScript</option>
+            <option>Python</option>
+            <option>TypeScript</option>
+            <option>Java</option>
+            <option>C#</option>
+            <option>C / C++</option>
+            <option>PHP</option>
+            <option>Ruby</option>
+            <option>Go</option>
+            <option>Shell / Bash</option>
+            <option>HTML / CSS</option>
+            <option>Kotlin</option>
+            <option>Swift</option>
+            <option>Rust</option>
+            <option>SQL</option>
+          </select>
+        </div>
+        <button id="btnCopiarCmp" class="btn-secondary">Copiar</button>
+      </div>
+      <div id="outputComparador" class="output-box cmp-output"></div>
+    </div>
+  </main>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────────────────── -->
   <footer>
-    <div class="footer-left">
+    <div class="footer-left" id="footerTradutor">
       <button id="btnTraduzir" class="btn-primary">→ Traduzir</button>
       <button id="btnLimpar" class="btn-secondary">Limpar</button>
+    </div>
+    <div class="footer-left hidden" id="footerComparador">
+      <button id="btnConverter" class="btn-primary">⇄ Converter</button>
+      <button id="btnLimparCmp" class="btn-secondary">Limpar</button>
     </div>
     <span id="status" class="status"></span>
   </footer>

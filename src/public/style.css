@@ -13,6 +13,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+.hidden { display: none !important; }
 
 body {
   font-family: "Segoe UI", system-ui, sans-serif;
@@ -73,6 +74,30 @@ h1 { font-size: 15px; color: var(--accent2); font-weight: 700; }
 }
 .btn-logout:hover { background: var(--surface); color: var(--text); }
 
+/* ── Tabs ── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--divider);
+  flex-shrink: 0;
+  padding: 0 20px;
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.tab-active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
 /* ── Main layout — 2 colunas sem gap, divididas por borda ── */
 main {
   display: grid;
@@ -119,7 +144,8 @@ main {
 }
 
 /* ── Textarea ── */
-textarea#inputCodigo {
+textarea#inputCodigo,
+textarea#inputComparador {
   flex: 1;
   background: transparent;
   border: none;
@@ -130,8 +156,10 @@ textarea#inputCodigo {
   padding: 16px;
   resize: none;
   outline: none;
+  min-height: 0;
 }
-textarea#inputCodigo::placeholder { color: var(--muted); }
+textarea#inputCodigo::placeholder,
+textarea#inputComparador::placeholder { color: var(--muted); }
 textarea#inputCodigo.hidden { display: none; }
 
 /* ── Código colorido ── */
@@ -191,6 +219,22 @@ mark.cm {
   color: var(--muted);
   font-style: italic;
   font-size: 13px;
+}
+
+.cmp-output {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+  display: block;
+}
+.cmp-output:empty::before {
+  content: "O código convertido aparecerá aqui...";
+  color: var(--muted);
+  font-style: italic;
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
 
 .translation-part {
